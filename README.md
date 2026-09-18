@@ -25,11 +25,17 @@ npm run build
 
 A saída é `dist/client/` para arquivos públicos e `dist/server/index.js` para o Worker.
 
+## EasyPanel
+
+O `Dockerfile` da raiz cria uma imagem Node.js pronta para o EasyPanel e expõe a aplicação na porta definida por `PORT` (padrão `3000`). Não é necessário informar outro caminho de Dockerfile ou comando de inicialização.
+
+Configure no EasyPanel as variáveis de `.env.example`. O servidor Node entrega os arquivos da landing page e mantém ativos `/api/leads`, `/api/leads/config` e `/api/meta/events`.
+
 ## Hospedagem e integrações
 
 Esta versão usa backend compatível com Cloudflare Workers e foi publicada pelo Sites. O backend espera o binding `ASSETS` para servir os arquivos de `dist/client/`. A configuração `.openai/hosting.json` identifica a publicação original no Sites; ela não contém credenciais.
 
-Uma hospedagem apenas estática não executa `/api/leads` nem `/api/meta/events`. Para outro ambiente, como um servidor Node.js ou EasyPanel, adapte o backend ou configure um runtime compatível antes de publicar os formulários.
+Uma hospedagem apenas estática não executa `/api/leads` nem `/api/meta/events`. Para o EasyPanel, use a imagem Docker incluída no projeto.
 
 Configure no servidor as variáveis de `.env.example`: `META_PIXEL_ID`, `META_GRAPH_VERSION`, `META_ACCESS_TOKEN`, `WHATSAPP_NUMBER`, `CRM_WEBHOOK_URL` e, se exigido pelo CRM, `CRM_WEBHOOK_TOKEN`. Use o número de WhatsApp da Nexo: `5544998168355`.
 
