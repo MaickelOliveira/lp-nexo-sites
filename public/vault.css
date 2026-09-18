@@ -1,0 +1,95 @@
+/* Photographic layers articulate in 3D; scroll controls every mechanical phase. */
+.nx-enabled.nexo-hero { height: 1100svh; }
+.nx-vault { position: absolute; z-index: 1; width: min(49vw,680px,78svh); aspect-ratio: 1; left: 76%; top: 53%; transform: translate(-50%,-50%); pointer-events: none; perspective: 1800px; }
+.nx-vault:not(.is-ready) { visibility: hidden !important; }
+.nx-vault-canvas { position: absolute; inset: 0; z-index: 1; display: block; width: 100%; height: 100%; pointer-events: none; opacity: 0; }
+.nx-webgl .nx-vault-canvas { opacity: 1; }
+.nx-webgl .nx-vault { visibility: hidden !important; }
+.nx-cinema-shade { display: none; }
+.nx-webgl .nx-color-wipe, .nx-webgl .nx-paper-wipe { display: none; }
+.nx-webgl .nx-cinema-shade { display: block; position: absolute; inset: 0; z-index: 2; pointer-events: none; opacity: var(--nx-immersion,0); background: radial-gradient(ellipse at 49% 49%,#04100dd4, #04100d72 39%,transparent 74%),linear-gradient(#080e0db8,transparent 22%,transparent 76%,#080e0dc9); }
+.nx-webgl .nx-desire, .nx-webgl .nx-invitation { color: #f0f4e9; text-shadow: 0 2px 28px #02080780; }
+.nx-webgl .nx-desire .nx-kicker, .nx-webgl .nx-invitation .nx-kicker { color: #c4d4b3; }
+.nx-webgl .nx-desire h2 em, .nx-webgl .nx-invitation h2 em, .nx-webgl .nx-direction { color: #c1f731; }
+.nx-webgl .nx-desire-bottom p, .nx-webgl .nx-invitation > p:not(.nx-kicker) { color: #d0dcc7; }
+.nx-webgl .nx-desire-bottom strong { color: #f2f8e9; }
+.nx-webgl .nx-invitation-note { color: #aabd9d; }
+.nx-webgl .nx-button-dark { background: #c1f731; border-color: #c1f731; color: #17240c; text-shadow: none; }
+.nx-webgl .nx-button-dark .button-arrow { background: #17240c; color: #c1f731; }
+.nx-webgl .nx-button-dark:hover { background: #d3ff64; }
+.nx-webgl .nx-connection { text-shadow: 0 2px 25px #0009; }
+.nx-webgl .nx-connection-copy { color: #c6d2bd; }
+.nx-webgl .nx-cinema-shade { opacity: calc(var(--nx-immersion,0) * (1 - var(--nx-final-view,0) * .65)); }
+.nx-webgl .nx-invitation { align-items: flex-start; text-align: left; padding-right: 49%; }
+.nx-webgl .nx-invitation h2 { font-size: clamp(3.5rem,5.4vw,6rem); }
+.nx-webgl .nx-invitation .nx-kicker { margin-bottom: 25px; }
+.nx-webgl .nx-invitation > p:not(.nx-kicker) { max-width: 390px; }
+.nx-webgl.nx-compact-ending .nx-invitation { align-items: center; justify-content: flex-start; text-align: center; padding: clamp(116px,17svh,155px) 0 90px; }
+.nx-webgl.nx-compact-ending .nx-invitation h2 { font-size: clamp(2.8rem,min(12vw,7svh),5rem); }
+.nx-treasure-paper { display: none; }
+.nx-webgl .nx-treasure-paper { display: block; position: absolute; inset: 0; z-index: 0; pointer-events: none; background: var(--paper); opacity: var(--nx-paper-final,0); }
+.nx-webgl .nx-cinema-shade { opacity: calc(var(--nx-immersion,0) * (1 - var(--nx-final-view,0) * .65) * (1 - var(--nx-paper-final,0))); }
+.nx-webgl.nx-paper-ending .nx-invitation, .nx-webgl.nx-paper-ending .nx-desire { color: #191b17; text-shadow: none; }
+.nx-webgl.nx-paper-ending .nx-invitation h2 em, .nx-webgl.nx-paper-ending .nx-desire h2 em { color: #657a49; }
+.nx-webgl.nx-paper-ending .nx-kicker, .nx-webgl.nx-paper-ending .nx-invitation > p:not(.nx-kicker), .nx-webgl.nx-paper-ending .nx-invitation-note { color: #59634f; }
+.nx-webgl.nx-paper-ending .nx-button-dark { background: #182111; border-color: #182111; color: #f0f1eb; }
+.nx-webgl.nx-paper-ending .nx-button-dark .button-arrow { background: var(--lime); color: #182111; }
+.nx-webgl.nx-paper-ending .nx-button-dark:hover { background: #344725; }
+.nx-vault-perspective { position: absolute; inset: 0; transform-style: preserve-3d; transform: rotateY(-9deg); }
+.nx-vault-frame { display: block; position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.nx-vault-door { position: absolute; width: 71%; height: 71%; left: 14.5%; top: 14.5%; transform-origin: 0 50%; transform-style: preserve-3d; }
+.nx-vault-door-face, .nx-vault-door-back { display: block; position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; backface-visibility: hidden; }
+.nx-vault-door-face { transform: translateZ(4px); }
+.nx-vault-door-back { transform: rotateY(180deg) translateZ(10px); filter: brightness(.55); }
+.nx-vault-wheel { position: absolute; left: 50%; top: 50%; width: 34%; height: 34%; max-width: none; object-fit: contain; transform: translate(-50%,-50%) translateZ(16px); backface-visibility: hidden; }
+.nx-vault-glow { position: absolute; inset: -20%; background: radial-gradient(ellipse,#b6ed2528 0,#8bb92710 37%,transparent 67%); opacity: .12; }
+.nx-vault-door-face { filter: brightness(calc(1 + var(--vault-unlock,0)*.06)); }
+.nx-orbit { border-color: #adce6912; }
+.nx-orbit-one::before { display: none; }
+.nx-color-wipe { clip-path: circle(0% at 50% 55%); }
+.nx-opening-note { bottom: 15%; max-width: 240px; font-size: .8125rem; }
+.nx-connection { padding-top: clamp(136px,17svh,180px); }
+.nx-connection h2 { font-size: clamp(2.7rem,4.7vw,4.8rem); }
+.nx-disciplines { inset: auto 0 15%; justify-content: center; gap: 35px; }
+.nx-discipline { font-size: 1rem; }
+.nx-discipline small { font-size: .8125rem; }
+.nx-discipline:nth-child(2) { position: static; transform: none; }
+.nx-discipline:first-child::after, .nx-discipline:last-child::before { display: none; }
+.nx-connection-copy { bottom: 7%; font-size: .875rem; }
+.nx-chapters { font-size: .75rem; letter-spacing: .07em; }
+.nx-continue { font-size: .8125rem; }
+@media (max-width:1000px) and (min-width:701px) {
+  .nx-vault { width: min(49vw,68svh); left: 76%; }
+  .nx-opening-note { font-size: .75rem; bottom: 15%; }
+}
+@media (max-width:700px) {
+  .nx-enabled.nexo-hero { height: 1050svh; }
+  .nx-vault { width: min(64vw,27svh,300px); left: 50%; top: 54%; }
+  .nx-connection { padding-top: 143px; }
+  .nx-connection h2 { font-size: 10vw; }
+  .nx-disciplines { bottom: 21%; gap: 17px; }
+  .nx-discipline { font-size: .8125rem; gap: 5px; }
+  .nx-discipline small { font-size: .75rem; }
+  .nx-connection-copy { bottom: 13%; font-size: .875rem; }
+  .nx-chapters { gap: 16px; font-size: .625rem; letter-spacing: .01em; }
+  .nx-continue { font-size: 0; }
+  .nx-webgl .nx-cinema-shade { background: radial-gradient(ellipse at 50% 48%,#04100ddd, #04100d7a 45%,transparent 78%),linear-gradient(#080e0dc9,transparent 22%,transparent 78%,#080e0dc9); }
+  .nx-webgl .nx-desire-bottom p { font-size: .875rem; }
+  .nx-webgl .nx-invitation > p:not(.nx-kicker) { font-size: .9375rem; }
+  .nx-webgl .nx-invitation { align-items: center; justify-content: flex-start; text-align: center; padding: clamp(116px,17svh,155px) 0 90px; }
+  .nx-webgl .nx-invitation h2 { font-size: 12vw; }
+  .nx-webgl .nx-invitation .nx-kicker { margin-bottom: 18px; }
+  .nx-webgl .nx-invitation > p:not(.nx-kicker) { margin-top: 17px; max-width: 300px; font-size: .875rem; }
+  .nx-webgl .nx-button-dark { margin-top: 19px; min-height: 49px; }
+  .nx-webgl .nx-invitation-note { margin-top: 13px; }
+}
+@media (max-height:780px) and (min-width:701px) {
+  .nx-opening-note { bottom: 15%; }
+  .nx-connection { padding-top: 127px; }
+  .nx-connection h2 { font-size: 3.4rem; }
+  .nx-disciplines { bottom: 16%; }
+  .nx-connection-copy { bottom: 6%; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .nx-vault-door, .nx-vault-wheel { transition: none; }
+}
