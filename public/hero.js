@@ -134,5 +134,5 @@
     window.nexoVault3D?.paint(f,mobile);
   }
   // The page's existing driver calls this controller: one scroll listener/paint loop.
-  window.nexoHero={configure,paint,get enabled(){return enabled;},get stageHeight(){return stageHeight;}};
+  window.nexoHero={configure,paint,frameAt:heroFrame,get enabled(){return enabled;},get stageHeight(){return stageHeight;}};
 })();

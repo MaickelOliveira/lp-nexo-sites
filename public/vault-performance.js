@@ -49,3 +49,42 @@ export function qualityFor({pixelRatio=1,coarse=false,memory=8,cores=8}={}) {
   const modest = coarse || memory <= 4 || cores <= 4;
   return {pixelRatio:Math.min(pixelRatio,modest?1.25:1.5),shadows:!modest};
 }
+
+// Shadow maps can run less frequently than the door/camera animation. Large
+// jumps and endpoints refresh immediately, including reverse scrolling.
+export function createShadowBudget(interval=50) {
+  let lastKey=null,lastTime=-Infinity,lastProgress=null;
+  return {
+    reset(){lastKey=null;lastTime=-Infinity;lastProgress=null;},
+    isPending(key){return key!==lastKey;},
+    needsUpdate(key,progress,now) {
+      if(key===lastKey)return false;
+      const jump=lastProgress===null||Math.abs(progress-lastProgress)>.035;
+      if(!jump&&progress>0&&progress<.395&&now-lastTime<interval)return false;
+      lastKey=key;lastTime=now;lastProgress=progress;return true;
+    }
+  };
+}
+
+// compileAsync alone does not upload buffers/textures or prepare shadow
+// programs. Draw the actual screen shader variants into the hidden canvas at a
+// tiny resolution, yielding between phases. A render target would compile a
+// different output-colour variant and leave a first-use pause on screen.
+export async function prepareScene(renderer,scene,camera,applyFrame,frames,yieldFrame) {
+  const size=renderer.getSize(new THREE.Vector2()),ratio=renderer.getPixelRatio();
+  const visibility=renderer.domElement.style.visibility;
+  renderer.domElement.style.visibility='hidden';
+  try {
+    renderer.setPixelRatio(1);renderer.setSize(96,96,false);
+    for(const frame of frames) {
+      applyFrame(frame);
+      await renderer.compileAsync(scene,camera);
+      renderer.shadowMap.needsUpdate=renderer.shadowMap.enabled;
+      renderer.render(scene,camera);
+      await yieldFrame();
+    }
+  } finally {
+    renderer.setPixelRatio(ratio);renderer.setSize(size.x,size.y,false);
+    renderer.domElement.style.visibility=visibility;
+  }
+}

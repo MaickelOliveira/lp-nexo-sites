@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.min.js';
-import {batchStaticMeshes} from './vault-performance.js?v=perf1';
+import {batchStaticMeshes} from './vault-performance.js?v=perf2';
 
 const clamp=v=>Math.max(0,Math.min(1,v));
 const ease=v=>{v=clamp(v);return v*v*(3-2*v);};
@@ -44,8 +44,7 @@ export const LASERS=[-9.3,-12.7,-16.2,-19.1].flatMap((z,i)=>{
 export function buildHeist() {
   const root=new THREE.Group();root.name='laser-route-and-gold';
   const coreMat=new THREE.MeshBasicMaterial({color:0xffd8d7,toneMapped:false});
-  const beamMat=new THREE.MeshBasicMaterial({color:0xff263e,transparent:true,opacity:.48,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
-  const hazeMat=beamMat.clone();hazeMat.opacity=.085;
+  const beamMat=new THREE.MeshBasicMaterial({color:0xff263e,transparent:true,opacity:.42,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
   const emitterMat=new THREE.MeshStandardMaterial({color:0x171d1c,metalness:.78,roughness:.32});
   const lensMat=new THREE.MeshBasicMaterial({color:0xff2942,toneMapped:false});
   const field=new THREE.Group();root.add(field);
@@ -57,7 +56,7 @@ export function buildHeist() {
   for(const {a,b} of LASERS) {
     const delta=b.clone().sub(a),mid=a.clone().add(b).multiplyScalar(.5),length=delta.length();
     const direction=delta.clone().normalize();
-    for(const [radius,material] of [[.005,coreMat],[.019,beamMat],[.06,hazeMat]]) {
+    for(const [radius,material] of [[.005,coreMat],[.028,beamMat]]) {
       const o=mesh(laserGeometry,material,field);o.position.copy(mid);o.scale.set(radius,length,radius);o.quaternion.setFromUnitVectors(axis,direction);
     }
     for(const p of [a,b]) {

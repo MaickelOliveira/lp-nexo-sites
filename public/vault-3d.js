@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.min.js';
-import {buildVault} from './vault-geometry.js?v=perf1';
-import {buildJourney,journeyFrame} from './vault-journey.js?v=perf1';
-import {qualityFor} from './vault-performance.js?v=perf1';
+import {buildVault} from './vault-geometry.js?v=perf2';
+import {buildJourney,journeyFrame} from './vault-journey.js?v=perf2';
+import {qualityFor,createShadowBudget,prepareScene} from './vault-performance.js?v=perf2';
 
 const hero=document.querySelector('.nexo-hero');
 const stage=hero?.querySelector('.nx-stage');
@@ -12,12 +12,13 @@ let renderer,environment,model,journey,lastFrame,lastMobile=false,width=0,height
 let ready=false,disposed=false,active=true,goldShadowReady=false;
 const quality=qualityFor({pixelRatio:window.devicePixelRatio||1,coarse:!finePointer.matches,memory:navigator.deviceMemory,cores:navigator.hardwareConcurrency});
 let pixelRatio=quality.pixelRatio,slowFrames=0;
-let renderedKey='';
+let renderedKey='',shadowRefresh=0;
 const pointer={x:0,y:0};
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(32,1,.018,100);camera.position.set(0,0,8.5);
 const look=new THREE.Vector3();
 const studioLights=[];
+const shadowBudget=createShadowBudget();
 
 function measure() {
   if(!renderer||disposed)return;
@@ -26,20 +27,10 @@ function measure() {
     width=w;height=h;renderer.setPixelRatio(pixelRatio);
     renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();
   }
-  baseWidth=fallback.offsetWidth;renderedKey='';goldShadowReady=false;
+  baseWidth=fallback.offsetWidth;renderedKey='';goldShadowReady=false;shadowBudget.reset();
   hero.classList.toggle('nx-compact-ending',width/height<1.55||width<=700);
 }
-function paint(frame,mobile) {
-  lastFrame=frame;lastMobile=mobile;
-  if(!ready||disposed||!active||document.hidden)return;
-  if(reduced.matches||!hero.classList.contains('nx-enabled')){
-    if(hero.classList.contains('nx-webgl')){hero.classList.remove('nx-webgl');renderer.domElement.style.visibility='hidden';requestPaint();}
-    return;
-  }
-  const key=[frame.p,mobile,width,height,baseWidth,pointer.x,pointer.y].join('|');
-  if(key===renderedKey)return;
-  // Keep rendering through the final hero chapter, after the exterior is behind us.
-  renderer.domElement.style.visibility='visible';renderer.domElement.style.opacity=1;
+function poseScene(frame,mobile) {
   const viewHeight=2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*8.5;
   const viewWidth=viewHeight*camera.aspect;
   const parallax=reduced.matches?0:1-frame.enter;
@@ -58,9 +49,27 @@ function paint(frame,mobile) {
   camera.position.set(flight.x*scale,flight.y*scale,flight.z*scale);
   look.set(flight.lookX*scale,flight.lookY*scale,camera.position.z-4*scale);
   camera.lookAt(look);camera.rotateZ(flight.roll);
+}
+function paint(frame,mobile) {
+  lastFrame=frame;lastMobile=mobile;
+  if(!ready||disposed||!active||document.hidden)return;
+  if(reduced.matches||!hero.classList.contains('nx-enabled')){
+    if(hero.classList.contains('nx-webgl')){hero.classList.remove('nx-webgl');renderer.domElement.style.visibility='hidden';requestPaint();}
+    return;
+  }
+  const key=[frame.p,mobile,width,height,baseWidth,pointer.x,pointer.y].join('|');
+  if(key===renderedKey)return;
+  // Keep rendering through the final hero chapter, after the exterior is behind us.
+  renderer.domElement.style.visibility='visible';renderer.domElement.style.opacity=1;
+  poseScene(frame,mobile);
   // Camera motion does not alter the room's shadow map. Reuse it after entry.
-  renderer.shadowMap.needsUpdate=quality.shadows&&(frame.p<.405||(frame.p>.84&&!goldShadowReady));
+  renderer.shadowMap.needsUpdate=quality.shadows&&((frame.p<.405&&shadowBudget.needsUpdate(key,frame.p,performance.now()))||(frame.p>.84&&!goldShadowReady));
   if(frame.p>.84)goldShadowReady=true;
+  // Settle the final shadow after scrolling stops, without leaving a render loop.
+  if(renderer.shadowMap.needsUpdate||frame.p>=.405){clearTimeout(shadowRefresh);shadowRefresh=0;}
+  else if(quality.shadows&&shadowBudget.isPending(key)&&!shadowRefresh){
+    shadowRefresh=setTimeout(()=>{shadowRefresh=0;renderedKey='';if(active&&!document.hidden)requestPaint();},55);
+  }
   try {
     const started=performance.now();
     renderer.render(scene,camera);
@@ -124,12 +133,18 @@ async function start() {
     studioLights.push({light:key,base:3.2},{light:rim,base:1.7},{light:fill,base:.8});
     model=buildVault({frame:textures[0],door:textures[1]});scene.add(model.root);
     journey=buildJourney();model.root.add(journey.root);
-    // Prepare the lighting/fade variants before revealing the canvas. This avoids
-    // first-time shader compilation exactly as the visitor enters the vault.
-    for(const p of [0,.7,.93]){journey.pose(p);await renderer.compileAsync(scene,camera);}
-    journey.pose(0);
+    // Warm entrance lighting, open-door geometry, lasers, transparency and gold.
+    // These are real hidden draws; the existing image stays visible meanwhile.
+    const mobile=width<=700;
+    const frames=[0,.28,.43,.6,.76,.93,1].map(p=>window.nexoHero.frameAt(p,mobile));
+    const yieldFrame=()=>new Promise(resolve=>{
+      if('requestIdleCallback' in window)requestIdleCallback(resolve,{timeout:100});
+      else setTimeout(resolve,16);
+    });
+    await prepareScene(renderer,scene,camera,f=>poseScene(f,mobile),frames,yieldFrame);
+    measure();
     ready=true;
-    window.nexoVault3D={paint,measure,setActive(value){active=value;}};
+    window.nexoVault3D={paint,measure,setActive(value){active=value;if(!value){clearTimeout(shadowRefresh);shadowRefresh=0;}}};
     stage.addEventListener('pointermove',pointerMove,{passive:true});
     stage.addEventListener('pointerleave',pointerLeave,{passive:true});
     const resize=()=>{measure();requestPaint();};

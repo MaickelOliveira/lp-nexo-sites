@@ -6,7 +6,7 @@
   function start() {
     if(loading||document.hidden||reduced.matches||navigator.connection?.saveData||!hero.classList.contains('nx-enabled'))return;
     loading=true;
-    import('./vault-3d.js?v=perf1').catch(()=>{ /* Keep the working image/CSS fallback. */ });
+    import('./vault-3d.js?v=perf2').catch(()=>{ /* Keep the working image/CSS fallback. */ });
   }
   const queue=()=>{if(loading)return;requestAnimationFrame(()=>{
     if('requestIdleCallback' in window)requestIdleCallback(start,{timeout:1600});

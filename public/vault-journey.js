@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.min.js';
-import {buildHeist,heistFlight} from './vault-heist.js?v=perf1';
-import {batchStaticMeshes} from './vault-performance.js?v=perf1';
+import {buildHeist,heistFlight} from './vault-heist.js?v=perf2';
+import {batchStaticMeshes} from './vault-performance.js?v=perf2';
 
 const clamp=v=>Math.max(0,Math.min(1,v));
 const ease=v=>{const p=clamp(v);return p*p*(3-2*p);};
@@ -32,13 +32,13 @@ export function buildJourney() {
     const o=mesh(new THREE.BoxGeometry(w,h,d),m,parent);o.position.set(x,y,z);return o;
   };
   // Beveled physical panels give highlights to edges without exposed wire shapes.
-  const panelGeometry=(w,h,d,r=.04)=>{
+  const panelGeometry=(w,h,d,r=.04,detailed=true)=>{
     const s=new THREE.Shape(),x=-w/2,y=-h/2;
     s.moveTo(x+r,y);s.lineTo(x+w-r,y);s.quadraticCurveTo(x+w,y,x+w,y+r);
     s.lineTo(x+w,y+h-r);s.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
     s.lineTo(x+r,y+h);s.quadraticCurveTo(x,y+h,x,y+h-r);
     s.lineTo(x,y+r);s.quadraticCurveTo(x,y,x+r,y);
-    const g=new THREE.ExtrudeGeometry(s,{depth:d,bevelEnabled:true,bevelSize:.012,bevelThickness:.012,bevelSegments:2,steps:1,curveSegments:4});
+    const g=new THREE.ExtrudeGeometry(s,{depth:d,bevelEnabled:true,bevelSize:.012,bevelThickness:.012,bevelSegments:detailed?2:1,steps:1,curveSegments:detailed?4:2});
     g.translate(0,0,-d/2);return g;
   };
   const baffle=mesh(new THREE.RingGeometry(.614,40,96),new THREE.MeshBasicMaterial({color:0x0e0e0e,side:THREE.DoubleSide}));
@@ -62,7 +62,7 @@ export function buildJourney() {
   }
   // Flush deposit boxes sit in both walls, with real inset borders and handles.
   const depositMetal=new THREE.MeshStandardMaterial({color:0x303b37,metalness:.76,roughness:.44,envMapIntensity:.4});
-  const count=96,drawers=new THREE.InstancedMesh(panelGeometry(1.27,.58,.08),depositMetal,count);
+  const count=96,drawers=new THREE.InstancedMesh(panelGeometry(1.27,.58,.08,.04,false),depositMetal,count);
   const handles=new THREE.InstancedMesh(new THREE.BoxGeometry(.3,.035,.048),champagne,count);
   const matrix=new THREE.Object3D();let index=0;
   for(const side of [-1,1])for(let col=0;col<12;col++)for(let row=0;row<4;row++) {

@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.min.js';
-import {batchStaticMeshes} from './vault-performance.js?v=perf1';
+import {batchStaticMeshes} from './vault-performance.js?v=perf2';
 
 // World-space dimensions keep the hinge, plate, bolts and opening aligned.
 export const VAULT = Object.freeze({outer:1.02,opening:.615,bodyDepth:.56,doorRadius:.658,doorDepth:.22,hingeX:-.73});
@@ -17,12 +17,12 @@ export function buildVault(textures={}) {
     const m=mesh(new THREE.CylinderGeometry(r,r,depth,72),material,parent);m.rotation.x=Math.PI/2;return m;
   };
   const torus=(r,tube,z,material,parent=root)=>{
-    const m=mesh(new THREE.TorusGeometry(r,tube,12,96),material,parent);m.position.z=z;return m;
+    const m=mesh(new THREE.TorusGeometry(r,tube,10,80),material,parent);m.position.z=z;return m;
   };
   const faceMaterial=map=>new THREE.MeshStandardMaterial({map:map||null,color:map?0xd8dce0:0x79818a,metalness:.46,roughness:.44,alphaTest:.15});
   const profile=new THREE.Shape();profile.absarc(0,0,VAULT.outer,0,Math.PI*2,false);
   const hole=new THREE.Path();hole.absarc(0,0,VAULT.opening,0,Math.PI*2,true);profile.holes.push(hole);
-  const body=mesh(new THREE.ExtrudeGeometry(profile,{depth:VAULT.bodyDepth,steps:1,bevelEnabled:true,bevelThickness:.026,bevelSize:.023,bevelSegments:3,curveSegments:80}),steel);
+  const body=mesh(new THREE.ExtrudeGeometry(profile,{depth:VAULT.bodyDepth,steps:1,bevelEnabled:true,bevelThickness:.026,bevelSize:.023,bevelSegments:3,curveSegments:48}),steel);
   body.position.z=-VAULT.bodyDepth;
   body.name='solid-vault-body';
   const frontGeometry=new THREE.RingGeometry(VAULT.opening,VAULT.outer,96);

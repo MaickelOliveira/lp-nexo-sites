@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from '../public/vendor/three.module.min.js';
-import {batchStaticMeshes,qualityFor} from '../public/vault-performance.js';
+import {batchStaticMeshes,qualityFor,createShadowBudget,prepareScene} from '../public/vault-performance.js';
 import {buildVault} from '../public/vault-geometry.js';
 import {buildJourney,journeyFrame} from '../public/vault-journey.js';
 import {selectEncoding,isNotModified} from '../server/static-assets.mjs';
@@ -55,4 +55,34 @@ test('compression negotiation honours accepted formats and disabled encodings',(
   assert.equal(selectEncoding('br',{gzip:10}),null);
   assert.equal(isNotModified('W/"old", "new"','W/"new"'),true);
   assert.equal(isNotModified('"old"','W/"new"'),false);
+});
+
+
+test('opening shadows have a bounded update rate while jumps and reverse endpoints refresh',()=>{
+  const budget=createShadowBudget();let updates=0;
+  for(let i=0;i<120;i++)if(budget.needsUpdate(String(i),.2+i*.0005,i*1000/120))updates++;
+  assert(updates<=21,`Too many shadow renders per second: ${updates}`);
+  assert(budget.needsUpdate('jump',.39,1001));
+  assert(budget.needsUpdate('reverse',.05,1002));
+  assert(budget.needsUpdate('closed',0,1003));
+  assert.equal(budget.needsUpdate('closed',0,1004),false);
+  assert.equal(budget.isPending('closed'),false);
+  assert.equal(budget.isPending('mouse-moved'),true);
+  budget.reset();assert(budget.needsUpdate('closed',0,1004));
+});
+
+for(const fail of [false,true])test(`scene warmup keeps draws hidden and restores resolution${fail?' on failure':''}`,async()=>{
+  let width=1400,height=900,ratio=1.5,phase=0,draws=0,yields=0;
+  const renderer={
+    domElement:{style:{visibility:''}},shadowMap:{enabled:true,needsUpdate:false},
+    getSize(target){return target.set(width,height);},getPixelRatio(){return ratio;},
+    setPixelRatio(value){ratio=value;},setSize(w,h){width=w;height=h;},
+    async compileAsync(){if(fail&&phase===.6)throw new Error('context lost');},
+    render(){assert.equal(this.domElement.style.visibility,'hidden');assert.equal(width,96);assert.equal(height,96);assert.equal(ratio,1);draws++;}
+  };
+  const warming=prepareScene(renderer,{}, {},p=>{phase=p;},[0,.28,.43,.6,.76,.93,1],async()=>{yields++;});
+  if(fail)await assert.rejects(warming,/context lost/);else await warming;
+  assert.equal(width,1400);assert.equal(height,900);assert.equal(ratio,1.5);
+  assert.equal(renderer.domElement.style.visibility,'');assert.equal(draws,yields);
+  assert.equal(draws,fail?3:7);
 });
