@@ -1,22 +1,8 @@
 (() => {
   "use strict";
-  const header = document.querySelector("[data-header]");
-  const progress = document.querySelector(".reading-progress");
   const menuButton = document.querySelector(".menu-toggle");
   const menu = document.querySelector(".nav-links");
-  let scrollPending = false;
-
-  function updateScroll() {
-    scrollPending = false;
-    const max = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
-    header?.classList.toggle("is-scrolled", window.scrollY > 24);
-    if (progress) progress.style.transform = "scaleX(" + Math.min(window.scrollY / max, 1) + ")";
-  }
-  updateScroll();
-  window.addEventListener("scroll", () => {
-    if (!scrollPending) { scrollPending = true; requestAnimationFrame(updateScroll); }
-  }, { passive: true });
-  window.addEventListener("resize", updateScroll, { passive: true });
+  // Reading progress and header state share the measured driver in motion.js.
 
   function closeMenu(returnFocus = false) {
     if (!menu || !menuButton) return;

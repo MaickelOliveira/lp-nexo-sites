@@ -1,8 +1,8 @@
 /* Every scene is driven by native scroll position. No scroll capture or autoplay. */
 :root { --lime: #c1f731; --paper: #f0f1e9; }
 body { overflow-x: clip; }
-.site-header { background: #0e0e0ef0; }
-.site-header.is-light { background: #f0f1e9ed; color: #171b12; box-shadow: none; }
+.site-header { background: #0e0e0e; }
+.site-header.is-light { background: #f0f1e9; color: #171b12; box-shadow: none; }
 .site-header.is-light .nav-shell { border-color: #15190f22; }
 .site-header.is-light .brand img { filter: brightness(0); mix-blend-mode: normal; }
 .site-header.is-light .nav-links a { color: #404938; }
@@ -134,6 +134,7 @@ body { overflow-x: clip; }
 .method-counter i { position: absolute; bottom: 0; left: 0; height: 2px; width: 100%; background: var(--lime); transform: scaleX(var(--method-progress,.25)); transform-origin: left; }
 .method-list { padding-top: 15px; padding-bottom: 110px; }
 .method-step { min-height: 360px; padding: 38px; margin-bottom: 45px; background: #26321d; border: 1px solid #9fbb713b; border-radius: 6px; position: relative; transform-origin: center top; box-shadow: 0 25px 45px #0002; }
+.method-step::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: #000; opacity: var(--step-shade,0); pointer-events: none; }
 .method-step:nth-child(2) { background: #2d3c21; }
 .method-step:nth-child(3) { background: #354728; }
 .method-step:nth-child(4) { background: #c1f731; color: #20300e; }
@@ -171,7 +172,7 @@ body { overflow-x: clip; }
 .contact-main { padding-block: 36px; }
 .contact h2 { font-size: clamp(3rem,7.8vw,8rem); }
 .contact h2 em { font-family: Georgia,serif; font-style: italic; }
-.contact-circle { width: clamp(80px,11vw,160px); }
+.contact-circle { width: clamp(80px,11vw,160px); transition: background .4s,color .4s; }
 .site-footer { overflow: clip; }
 .footer-back { transition: color .2s; }
 .footer-back:hover { color: var(--lime); }
@@ -386,7 +387,7 @@ body { overflow-x: clip; }
 .intent .section-index { margin-bottom: clamp(25px,5svh,65px); }
 .intent-track { position: relative; isolation: isolate; }
 .intent-sequence { position: relative; z-index: 1; list-style: none; margin: 0; padding: 0; }
-.intent-highlight { display: none; position: absolute; top: 0; left: -24px; right: -24px; height: 110px; background: #c1f731; border-radius: 4px; pointer-events: none; }
+.intent-highlight { display: none; position: absolute; top: 0; left: -24px; right: -24px; height: 110px; background: #c1f731; border-radius: 4px; pointer-events: none; transform-origin: center top; }
 .motion-ready .intent-highlight { display: block; }
 .intent-line { position: relative; display: flex; align-items: baseline; gap: 27px; border-bottom: 1px solid #34492525; padding: 17px 0 23px; }
 .intent-number { color: #758168; font-size: .8rem; flex: 0 0 24px; }

@@ -39,8 +39,8 @@ p { color: var(--muted); }
 .section-index { display: flex; justify-content: space-between; gap: 20px; padding-bottom: 23px; margin-bottom: 60px; border-bottom: 1px solid var(--line); color: var(--muted); }
 .section-index > :first-child { color: inherit; }
 .reading-progress { position: fixed; inset: 0 0 auto; height: 2px; background: var(--lime); z-index: 110; transform: scaleX(0); transform-origin: left; }
-.site-header { position: fixed; top: 0; right: 0; left: 0; z-index: 100; background: #0e0e0ef2; transition: background .3s, box-shadow .3s; }
-.site-header.is-scrolled { background: #0e0e0ee8; backdrop-filter: blur(18px); box-shadow: 0 1px 0 #ffffff15; }
+.site-header { position: fixed; top: 0; right: 0; left: 0; z-index: 100; background: #0e0e0e; transition: background .3s, box-shadow .3s; }
+.site-header.is-scrolled { background: #0e0e0e; box-shadow: 0 1px 0 #ffffff15; }
 .nav-shell { display: flex; min-height: 94px; align-items: center; gap: 28px; border-bottom: 1px solid #ffffff24; }
 .brand { display: block; flex-shrink: 0; width: 135px; }
 .brand img { width: 100%; mix-blend-mode: screen; }

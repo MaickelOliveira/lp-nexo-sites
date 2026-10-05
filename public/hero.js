@@ -46,12 +46,23 @@
   const chapters=all('.nx-chapters span'), disciplines=all('.nx-discipline');
   const orbitOne=$('.nx-orbit-one'), orbitTwo=$('.nx-orbit-two');
   const first=$('.nx-desire-first'), last=$('.nx-desire-last');
+  const progress=$('.nx-progress i'), shade=$('.nx-cinema-shade'), treasurePaper=$('.nx-treasure-paper');
+  const count=$('[data-hero-count]');
+  const styles=new WeakMap(), shownState=new WeakMap();
+  const set=(el,key,value)=>{
+    if(!el)return;
+    let cache=styles.get(el);
+    if(!cache){cache=new Map();styles.set(el,cache);}
+    const text=String(value);
+    if(cache.get(key)===text)return;
+    cache.set(key,text);el.style.setProperty(key,text);
+  };
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
   const vaultImages=all('.nx-vault img');
   const ready=()=>vault.classList.toggle('is-ready',vaultImages.every(img=>img.complete&&img.naturalWidth>0));
   vaultImages.forEach(img=>img.addEventListener('load',ready));
   ready();
-  let enabled=false,stageHeight=0,lastPaintKey="";
+  let enabled=false,stageHeight=0,lastPaintKey="",lastChapter=-1;
   function configure(vh) {
     lastPaintKey="";
     // Keep all essential content available at high zoom and in short landscape views.
@@ -87,50 +98,56 @@
     const paintKey=[f.p,mobile,enabled,immersive].join('|');
     if(paintKey===lastPaintKey){window.nexoVault3D?.paint(f,mobile);return;}
     lastPaintKey=paintKey;
-    hero.style.setProperty('--nx-progress',enabled?f.p:0);
-    hero.style.setProperty('--nx-immersion',ease(range(f.p,.4,.51)));
-    hero.style.setProperty('--nx-final-view',ease(range(f.p,.86,.95)));
-    hero.style.setProperty('--nx-paper-final',paperFinal);
+    // Animate the affected layers directly, without invalidating inherited
+    // custom properties across every descendant of the full-screen hero.
+    set(progress,'transform',`scaleX(${enabled?f.p:0})`);
+    set(shade,'opacity',ease(range(f.p,.4,.51))*(1-ease(range(f.p,.86,.95))*.65)*(1-paperFinal));
+    set(treasurePaper,'opacity',paperFinal);
     const lightTone=immersive?paperFinal>.72:f.light;
     hero.classList.toggle('nx-paper-ending',immersive&&lightTone);
-    hero.style.setProperty('--nx-ink',lightTone?'#233215':'#e3ecd7');
-    hero.dataset.tone=lightTone?'light':'dark';
+    set(hero,'--nx-ink',lightTone?'#233215':'#e3ecd7');
+    const tone=lightTone?'light':'dark';
+    if(hero.dataset.tone!==tone)hero.dataset.tone=tone;
     if(!immersive){
-    lime.style.clipPath=`circle(${f.lime*150}% at 50% 55%)`;
-    paper.style.clipPath=`circle(${f.paper*150}% at 80% 55%)`;
+    set(lime,'clip-path',`circle(${f.lime*150}% at 50% 55%)`);
+    set(paper,'clip-path',`circle(${f.paper*150}% at 80% 55%)`);
     }
     scenes.forEach((el,i)=>{
       const shown=f.scenes[i]>.015;
-      el.style.opacity=f.scenes[i];
-      el.style.visibility=shown?'visible':'hidden';
-      el.inert=!shown;
-      if(i===0) el.style.transform=`translate3d(0,${-75*(1-f.scenes[0])}px,0) scale(${1-(1-f.scenes[0])*.035})`;
-      if(i===1) el.style.transform=`translate3d(0,${(immersive&&f.p>.45?-120:24)*(1-f.scenes[1])}px,0)`;
-      if(i===3) el.style.transform=`translate3d(0,${30*(1-f.scenes[3])}px,0) scale(${f.invitationScale})`;
+      if(shownState.get(el)!==shown){shownState.set(el,shown);el.inert=!shown;set(el,'visibility',shown?'visible':'hidden');}
+      if(!shown)return;
+      set(el,'opacity',f.scenes[i]);
+      if(i===0) set(el,'transform',`translate3d(0,${-75*(1-f.scenes[0])}px,0) scale(${1-(1-f.scenes[0])*.035})`);
+      if(i===1) set(el,'transform',`translate3d(0,${(immersive&&f.p>.45?-120:24)*(1-f.scenes[1])}px,0)`);
+      if(i===3) set(el,'transform',`translate3d(0,${30*(1-f.scenes[3])}px,0) scale(${f.invitationScale})`);
     });
     if(!immersive){
-    vault.style.left=f.left+'%';vault.style.top=f.top+'%';
-    vault.style.opacity=f.vaultOpacity;
-    vault.style.visibility=f.vaultOpacity>.001?'visible':'hidden';
-    vault.style.transform=`translate(-50%,-50%) scale(${f.scale})`;
-    perspective.style.transform=`rotateX(${f.rx}deg) rotateY(${f.ry}deg)`;
-    door.style.transform=`rotateY(${f.doorAngle}deg)`;
-    wheel.style.transform=`translate(-50%,-50%) translateZ(16px) rotate(${f.wheelAngle}deg)`;
-    glow.style.opacity=f.glow*(1-f.enter);
-    vault.style.setProperty('--vault-unlock',f.unlock);
+    set(vault,'left',f.left+'%');set(vault,'top',f.top+'%');
+    set(vault,'opacity',f.vaultOpacity);
+    set(vault,'visibility',f.vaultOpacity>.001?'visible':'hidden');
+    set(vault,'transform',`translate(-50%,-50%) scale(${f.scale})`);
+    set(perspective,'transform',`rotateX(${f.rx}deg) rotateY(${f.ry}deg)`);
+    set(door,'transform',`rotateY(${f.doorAngle}deg)`);
+    set(wheel,'transform',`translate(-50%,-50%) translateZ(16px) rotate(${f.wheelAngle}deg)`);
+    set(glow,'opacity',f.glow*(1-f.enter));
+    set(vault,'--vault-unlock',f.unlock);
     }
     disciplines.forEach((el,i)=>{
       const side=i===0?-1:i===2?1:0;
-      el.style.transform=`translate3d(${side*(1-f.open)*(mobile?20:80)}px,${(1-f.open)*22}px,0)`;
+      set(el,'transform',`translate3d(${side*(1-f.open)*(mobile?20:80)}px,${(1-f.open)*22}px,0)`);
     });
-    orbitOne.style.transform=`translate(-50%,-50%) rotate(${-28+f.p*170}deg) scaleY(.7)`;
-    orbitTwo.style.transform=`translate(-50%,-50%) rotate(${35-f.p*125}deg) scaleY(.6)`;
-    orbitOne.style.opacity=orbitTwo.style.opacity=.25*(1-f.enter);
-    first.style.transform=`translateX(${-f.desireX*(mobile?70:220)}px)`;
-    last.style.transform=`translateX(${f.desireX*(mobile?65:190)}px)`;
-    chapters.forEach((el,i)=>el.classList.toggle('is-current',i===f.chapter));
-    const count=$('[data-hero-count]'),label=String(f.chapter+1).padStart(2,'0');
-    if(count.textContent!==label)count.textContent=label;
+    if(f.enter<1){
+      set(orbitOne,'transform',`translate(-50%,-50%) rotate(${-28+f.p*170}deg) scaleY(.7)`);
+      set(orbitTwo,'transform',`translate(-50%,-50%) rotate(${35-f.p*125}deg) scaleY(.6)`);
+    }
+    set(orbitOne,'opacity',.25*(1-f.enter));set(orbitTwo,'opacity',.25*(1-f.enter));
+    set(first,'transform',`translateX(${-f.desireX*(mobile?70:220)}px)`);
+    set(last,'transform',`translateX(${f.desireX*(mobile?65:190)}px)`);
+    if(lastChapter!==f.chapter){
+      lastChapter=f.chapter;
+      chapters.forEach((el,i)=>el.classList.toggle('is-current',i===f.chapter));
+      count.textContent=String(f.chapter+1).padStart(2,'0');
+    }
     window.nexoVault3D?.paint(f,mobile);
   }
   // The page's existing driver calls this controller: one scroll listener/paint loop.

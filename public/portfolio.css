@@ -18,7 +18,7 @@
 .portfolio-pinned .portfolio-stage { display: grid; grid-template-rows: 54px minmax(0,1fr) 2px; gap: 16px; height: 100%; min-height: 0; }
 .portfolio-pinned .portfolio-stage-top { margin: 0; min-height: 48px; align-items: center; font-size: 1rem; }
 .portfolio-pinned .work-panels { position: relative; overflow: clip; min-height: 0; isolation: isolate; }
-.portfolio-pinned .work-panel { position: absolute; top: 0; left: 0; width: 100%; margin: 0; padding-bottom: 25px; visibility: hidden; background: #0e0e0e; will-change: transform,clip-path; }
+.portfolio-pinned .work-panel { position: absolute; top: 0; left: 0; width: 100%; margin: 0; padding-bottom: 25px; visibility: hidden; background: #0e0e0e; }
 .portfolio-pinned .work-panel + .work-panel { margin-top: 0; }
 .portfolio-pinned .case-canvas { padding: 16px; }
 .portfolio-pinned .case-browser { margin-bottom: 18px; box-shadow: none; }

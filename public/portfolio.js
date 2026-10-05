@@ -56,6 +56,14 @@
   };
   let enabled=false, story, start=0, top=0, height=0, active=-1,viewHeight=0,lastDistance=null;
   let links=[], naturalTops=[];
+  const styles=new WeakMap(), interactiveState=new WeakMap();
+  const set=(el,key,value)=>{
+    let cache=styles.get(el);
+    if(!cache){cache=new Map();styles.set(el,cache);}
+    const text=String(value);
+    if(cache.get(key)===text)return;
+    cache.set(key,text);el.style.setProperty(key,text);
+  };
   const setActive = index => {
     if(active===index) return;
     active=index;
@@ -90,9 +98,10 @@
       journey.style.removeProperty('height');
       naturalTops=panels.map(offset);
       panels.forEach(panel=>{
+        styles.delete(panel);interactiveState.delete(panel);
         panel.inert=false;
         panel.removeAttribute('aria-hidden');
-        ['transform','opacity','visibility','clip-path','z-index'].forEach(p=>panel.style.removeProperty(p));
+        ['transform','opacity','visibility','clip-path','z-index','will-change'].forEach(p=>panel.style.removeProperty(p));
         panel.querySelectorAll('a').forEach(el=>el.removeAttribute('tabindex'));
       });
     }
@@ -111,30 +120,34 @@
     lastDistance=distance;
     const f=frameAt(distance,story);
     setActive(f.active);
-    journey.style.setProperty('--portfolio-progress',f.progress);
+    set(journey,'--portfolio-progress',f.progress);
     choices.forEach((choice,i)=>{
       const value=i<f.index?1:i===f.index?f.p:0;
-      choice.style.setProperty('--chapter-progress',value);
+      set(choice,'--chapter-progress',value);
     });
     panels.forEach((panel,i)=>{
       const outgoing=i===f.index;
       const incoming=i===f.index+1 && f.transition>0;
       const shown=outgoing||incoming;
       const interactive=i===f.active;
-      panel.inert=!interactive;
-      if(interactive) panel.removeAttribute('aria-hidden');
-      else panel.setAttribute('aria-hidden','true');
-      panel.style.visibility=shown?'visible':'hidden';
+      if(interactiveState.get(panel)!==interactive){
+        interactiveState.set(panel,interactive);panel.inert=!interactive;
+        if(interactive) panel.removeAttribute('aria-hidden');
+        else panel.setAttribute('aria-hidden','true');
+      }
+      set(panel,'visibility',shown?'visible':'hidden');
+      // Keep only the currently presented covers promoted to graphics layers.
+      set(panel,'will-change',shown?'transform,opacity,clip-path':'auto');
       if(!shown) return;
       const pan=outgoing?f.pan:0;
-      panel.style.zIndex=incoming?'2':'1';
-      panel.style.opacity=outgoing?String(1-f.transition*.6):'1';
-      panel.style.clipPath=incoming?`inset(0 0 0 ${(1-f.transition)*100}%)`:'none';
-      panel.style.transform=`translate3d(${incoming?(1-f.transition)*36:-f.transition*36}px,${-pan}px,0)`;
+      set(panel,'z-index',incoming?'2':'1');
+      set(panel,'opacity',outgoing?1-f.transition*.6:1);
+      set(panel,'clip-path',incoming?`inset(0 0 0 ${(1-f.transition)*100}%)`:'none');
+      set(panel,'transform',`translate3d(${incoming?(1-f.transition)*36:-f.transition*36}px,${-pan}px,0)`);
       // Keyboard navigation stays within the portion of the project on screen.
       links[i].forEach(link=>{
         const visible=interactive&&link.top-pan>=0&&link.bottom-pan<=viewHeight;
-        link.el.tabIndex=visible?0:-1;
+        if(link.visible!==visible){link.visible=visible;link.el.tabIndex=visible?0:-1;}
       });
     });
   }

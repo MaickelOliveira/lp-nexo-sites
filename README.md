@@ -48,3 +48,9 @@ O 3D é carregado após a primeira pintura da página e respeita economia de dad
 `npm run build` também gera Brotli/gzip e um manifesto de cache em `dist/server/assets.json`. Publique o `dist` completo ou reconstrua o Dockerfile. O servidor Node entrega os arquivos comprimidos e responde `304` quando o conteúdo não mudou. Ao alterar módulos JS/CSS versionados, atualize os parâmetros `?v=` no HTML e nos imports correspondentes.
 
 Verificação: `npm test`. Os testes cobrem preservação da geometria agrupada, reversibilidade do percurso, orçamento de peças, compressão e os fluxos existentes de leads e conversões. A taxa de quadros deve ser verificada em aparelhos com WebGL real; contagem de peças e bytes não equivalem a uma medição de FPS.
+
+## Rolagem da página
+
+O cabeçalho, a barra de progresso e as seções compartilham um único agendamento por frame. As dimensões ficam em cache e são recalculadas quando o layout muda. Seções fora da tela estabilizam no primeiro/último estado; a faixa verde usa transformação em vez de alterar a altura durante o scroll. O cabeçalho usa fundo sólido para evitar recalcular desfoque sobre o canvas 3D.
+
+A hero atualiza diretamente as camadas visíveis, sem propagar variáveis de animação por toda a árvore. O portfólio mantém camadas gráficas apenas para os projetos em apresentação. `tests/scroll.test.mjs` verifica leituras de layout, agrupamento de eventos, navegação nos quatro projetos, movimento reduzido e retorno das animações ao rolar para cima. A rolagem continua nativa.

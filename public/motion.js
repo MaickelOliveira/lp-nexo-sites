@@ -56,12 +56,21 @@
   const intentSticky = $('.intent-sticky');
   const motionLines = all('.motion-line');
   const sections = all('main > section');
+  const header = $('.site-header'), reading = $('.reading-progress');
+  const work = $('.work'), ribbon = $('.work-ribbon');
+  const intent = $('.intent'), intentTrack = $('.intent-track'), highlight = $('.intent-highlight');
+  const methodList = $('.method-list'), counter = $('[data-method-number]'), methodCounter = $('.method-counter');
+  const difference = $('.difference-statement'), principleGrid = $('.principle-grid');
+  const faq = $('.faq'), faqSymbol = $('.faq-symbol');
+  const contact = $('.contact'), contactMain = $('.contact-main'), contactCircle = $('.contact-circle'), contactBottom = $('.contact-bottom');
+  const footer = $('.site-footer'), footerTop = $('.footer-top');
   steps.forEach((step,i) => step.style.setProperty('--step-i',i));
   const tracked = [...new Set([hero, wordsRoot, ...values, ...steps, ...panels, ...reveals,
-    $('.work'), $('.intent'), $('.method-list'), $('.difference-statement'), $('.principle-grid'),
-    $('.faq'), ...questions, $('.contact'), $('.site-footer'), ...sections].filter(Boolean))];
+    work, intent, methodList, difference, principleGrid,
+    faq, ...questions, contact, footer, ...sections].filter(Boolean))];
   let metrics = new Map(), frame = 0, measuring = true;
-  let intentMetrics, intentRows=[];
+  let intentMetrics, intentRows=[], pageRange=1, bandHeight=1;
+  const painted = new Map();
 
   // offsetTop is independent of transforms and sticky positioning. Caching these
   // coordinates avoids feeding a rendered transform into the following frame.
@@ -76,14 +85,14 @@
     window.nexoVault3D?.measure();
     metrics = new Map(tracked.map(el => [el, { top: offsetTop(el), height: el.offsetHeight }]));
     intentRows=intentLines.map(el=>({top:el.offsetTop,height:el.offsetHeight}));
-    const trackTop=offsetTop($('.intent-track'));
+    const trackTop=offsetTop(intentTrack);
     const first=intentRows[0],last=intentRows[intentRows.length-1];
-    intentMetrics={...metrics.get($('.intent')),stageHeight:intentSticky.offsetHeight,
+    intentMetrics={...metrics.get(intent),stageHeight:intentSticky.offsetHeight,
       pinned:getComputedStyle(intentSticky).position==='sticky',
       firstCenter:trackTop+first.top+first.height/2,lastCenter:trackTop+last.top+last.height/2};
     // Recover the cards' normal-flow coordinates even when a resize or FAQ toggle
     // occurs while a card is stuck. Sticky offsets must not shift the timeline.
-    const list = $('.method-list');
+    const list = methodList;
     let stepTop = offsetTop(list) + parseFloat(getComputedStyle(list).paddingTop || 0);
     steps.forEach(el => {
       const style = getComputedStyle(el);
@@ -91,6 +100,12 @@
       metrics.set(el,{top:stepTop,height:el.offsetHeight});
       stepTop += el.offsetHeight + parseFloat(style.marginBottom || 0);
     });
+    // All geometry reads finish before scroll paint starts. The band changes
+    // scale, not layout height, while moving between differently sized rows.
+    pageRange=Math.max(root.scrollHeight-window.innerHeight,1);
+    bandHeight=Math.max(first.height,1);
+    set(highlight,'height',bandHeight+'px');
+    painted.clear();
     measuring = false;
   }
   const styleCache=new WeakMap();
@@ -103,12 +118,6 @@
   };
   const transform=(el,value)=>set(el,'transform',value);
   const opacity=(el,value)=>set(el,'opacity',value);
-  function actionable(el, shown) {
-    if (!el) return;
-    // Offstage controls must not receive keyboard focus. Never steal existing focus.
-    el.inert = !shown;
-    el.style.visibility = shown ? 'visible' : 'hidden';
-  }
   function update() {
     frame = 0;
     if (measuring) measure();
@@ -118,6 +127,15 @@
     const progress = el => {
       const m = metrics.get(el);
       return m ? clamp((y + vh - m.top) / (m.height + vh)) : 0;
+    };
+    // Paint an offscreen group only on its boundary. Large anchor jumps and
+    // reverse traversal still settle both endpoints; distant sections stay idle.
+    const changed = el => {
+      const m=metrics.get(el);
+      if(!m)return false;
+      const position=clamp(y,m.top-vh,m.top+m.height);
+      if(painted.get(el)===position)return false;
+      painted.set(el,position);return true;
     };
     const heroController = window.nexoHero;
     const hp = heroController?.enabled ? range(y-(metrics.get(hero)?.top||0),0,Math.max((metrics.get(hero)?.height||0)-heroController.stageHeight,1)) : 0;
@@ -129,83 +147,101 @@
     // Header contrast follows the surface under it, including reverse traversal.
     let currentSection = hero;
     for (const section of sections) if (top(section) <= 85) currentSection = section;
-    $('.site-header')?.classList.toggle('is-light',currentSection?.dataset.tone === 'light');
+    header?.classList.toggle('is-light',currentSection?.dataset.tone === 'light');
+    header?.classList.toggle('is-scrolled',y>24);
+    transform(reading,`scaleX(${clamp(y/pageRange)})`);
     reveals.forEach(el => {
+      if(!changed(el))return;
       const p = motion ? entry(top(el),vh) : 1;
       opacity(el,lerp(.28,1,p));
       transform(el,`translate3d(0,${(1-p)*42}px,0)`);
       if(el.classList.contains('section-index')) set(el,'--index-progress',p);
     });
     transitions.forEach(el=>set(el,'--cap-scale',motion?chapterFrame(top(el),vh):0));
-    const wordProgress = motion ? range(vh - top(wordsRoot),vh*.25,vh*.85) : 1;
-    words.forEach((word,i) => set(word,'--word-o',lerp(.16,1,ease(range(wordProgress,i/words.length,(i+1.4)/words.length)))));
+    if(changed(wordsRoot)) {
+      const wordProgress = motion ? range(vh - top(wordsRoot),vh*.25,vh*.85) : 1;
+      words.forEach((word,i) => set(word,'--word-o',lerp(.16,1,ease(range(wordProgress,i/words.length,(i+1.4)/words.length)))));
+    }
     values.forEach((el,i) => {
+      if(!changed(el))return;
       const p = motion ? entry(top(el),vh,.99,.43-i*.055) : 1;
       transform(el,`perspective(1100px) translate3d(0,${(1-p)*(80+i*23)}px,0) rotateX(${(1-p)*12}deg)`);
       opacity(el,lerp(.3,1,p));
     });
-    const wp = progress($('.work'));
-    transform($('.work-ribbon'),motion ? `translateX(${-wp*(mobile?360:750)}px)` : 'none');
+    if(changed(work)) {
+      const wp = progress(work);
+      transform(ribbon,motion ? `translateX(${-wp*(mobile?360:750)}px)` : 'none');
+    }
     panels.forEach(el => {
-      if (el.closest('[hidden]')) return;
+      if (!changed(el)) return;
       const p = motion ? entry(top(el),vh,.95,.24) : 1;
       set(el,'--case-y',`${(1-p)*45}px`); set(el,'--case-r',`${(1-p)*18}deg`); set(el,'--case-s',lerp(.84,1,p));
     });
-    const intent = $('.intent');
-    const ip = motion ? intentProgress(y,vh,intentMetrics) : .5;
-    const intentEntry = motion ? entry(top(intent),vh,1,.12) : 1;
-    const intentStates = intentFrame(ip);
-    intentLines.forEach((el,i)=>{
-      const side=i%2===0?-1:1;
-      transform(el,`translate3d(${motion?(1-intentEntry)*side*(mobile?22:90):0}px,0,0)`);
-      opacity(el,motion?lerp(.64,1,intentStates[i]):1);
-    });
-    const band=intentHighlight(ip,intentRows);
-    transform($('.intent-highlight'),`translate3d(0,${band.top}px,0)`);
-    set($('.intent-highlight'),'height',band.height+'px');
-    set(intent,'--intent-progress',motion?ip:1);
-    let activeStep = 0;
-    steps.forEach((el,i) => {
-      const m = metrics.get(el), before = m.top-y;
-      const next = steps[i+1] && metrics.get(steps[i+1]);
-      if (before < vh*.6) activeStep = i;
-      const overlap = motion && !short.matches && next ? ease(range(y + 155 + i*16 - next.top,-vh*.22,50)) : 0;
-      const enter = motion ? entry(before,vh,.99,.52) : 1;
-      transform(el,`perspective(1300px) translateY(${(1-enter)*48}px) scale(${1-overlap*.055}) rotateX(${-overlap*3}deg)`);
-      // Keep stacked text readable until the next card physically covers it.
-      set(el,'filter',motion ? `brightness(${1-overlap*.17})` : 'none');
-    });
-    const counter = $('[data-method-number]');
-    const label=String(activeStep+1).padStart(2,'0');
-    if(counter&&counter.textContent!==label)counter.textContent=label;
-    set($('.method-counter'),'--method-progress',(activeStep+1)/4);
-    const difference = $('.difference-statement');
-    const dp = motion ? entry(top(difference),vh,.98,.38) : 1;
-    transform(difference,`translate3d(0,${(1-dp)*60}px,0) scale(${lerp(.9,1,dp)})`);
-    opacity(difference,lerp(.3,1,dp));
-    motionLines.forEach((el,i)=>transform(el,`translateX(${motion?(1-dp)*(i%2===0?-1:1)*(mobile?25:105):0}px)`));
-    const fan = motion ? entry(top($('.principle-grid')),vh,.99,.28) : 1;
-    principles.forEach((el,i) => {
-      const side = i-1;
-      const x = mobile ? side*(1-fan)*20 : -side*(1-fan)*160;
-      const angle = mobile ? side*(1-fan)*5 : side*(1-fan)*19;
-      transform(el,`translate3d(${x}px,${(1-fan)*(i===1?0:75)}px,0) rotate(${angle}deg)`);
-    });
-    const fp = motion ? progress($('.faq')) : .5;
-    transform($('.faq-symbol'),`rotate(${(fp-.5)*35}deg) translateY(${(fp-.5)*-90}px)`);
-    questions.forEach((el,i) => {
-      const p = motion ? entry(top(el),vh,.99,.65) : 1;
-      transform(el,`translateX(${(1-p)*(30+i*8)}px)`);
-      opacity(el,lerp(.35,1,p));
-    });
-    const contact = $('.contact'), ct = top(contact);
-    const cp = motion ? ease(range(vh-ct,0,vh*.65)) : 1;
-    set(contact,'--contact-radius',`${lerp(20,150,cp)}%`);
-    transform($('.contact-main'),`translateX(${motion ? (1-cp)*-60 : 0}px)`);
-    transform($('.contact-circle'),`rotate(${motion ? (1-cp)*-75 : 0}deg)`);
-    transform($('.contact-bottom'),`translateX(${motion ? (1-cp)*40 : 0}px)`);
-    const footerP = motion ? entry(top($('.site-footer')),vh,1,.7) : 1;
-    transform($('.footer-top'),`translateY(${(1-footerP)*45}px)`);
+    if(changed(intent)) {
+      const ip = motion ? intentProgress(y,vh,intentMetrics) : .5;
+      const intentEntry = motion ? entry(top(intent),vh,1,.12) : 1;
+      const intentStates = intentFrame(ip);
+      intentLines.forEach((el,i)=>{
+        const side=i%2===0?-1:1;
+        transform(el,`translate3d(${motion?(1-intentEntry)*side*(mobile?22:90):0}px,0,0)`);
+        opacity(el,motion?lerp(.64,1,intentStates[i]):1);
+      });
+      const band=intentHighlight(ip,intentRows);
+      transform(highlight,`translate3d(0,${band.top}px,0) scaleY(${band.height/bandHeight})`);
+      set(intent,'--intent-progress',motion?ip:1);
+    }
+    if(changed(methodList)) {
+      let activeStep = 0;
+      steps.forEach((el,i) => {
+        const m = metrics.get(el), before = m.top-y;
+        const next = steps[i+1] && metrics.get(steps[i+1]);
+        if (before < vh*.6) activeStep = i;
+        const overlap = motion && !short.matches && next ? ease(range(y + 155 + i*16 - next.top,-vh*.22,50)) : 0;
+        const enter = motion ? entry(before,vh,.99,.52) : 1;
+        transform(el,`perspective(1300px) translateY(${(1-enter)*48}px) scale(${1-overlap*.055}) rotateX(${-overlap*3}deg)`);
+        // Keep stacked text readable until the next card physically covers it.
+        set(el,'--step-shade',motion ? overlap*.17 : 0);
+      });
+      const label=String(activeStep+1).padStart(2,'0');
+      if(counter&&counter.textContent!==label)counter.textContent=label;
+      set(methodCounter,'--method-progress',(activeStep+1)/4);
+    }
+    if(changed(difference)) {
+      const dp = motion ? entry(top(difference),vh,.98,.38) : 1;
+      transform(difference,`translate3d(0,${(1-dp)*60}px,0) scale(${lerp(.9,1,dp)})`);
+      opacity(difference,lerp(.3,1,dp));
+      motionLines.forEach((el,i)=>transform(el,`translateX(${motion?(1-dp)*(i%2===0?-1:1)*(mobile?25:105):0}px)`));
+    }
+    if(changed(principleGrid)) {
+      const fan = motion ? entry(top(principleGrid),vh,.99,.28) : 1;
+      principles.forEach((el,i) => {
+        const side = i-1;
+        const x = mobile ? side*(1-fan)*20 : -side*(1-fan)*160;
+        const angle = mobile ? side*(1-fan)*5 : side*(1-fan)*19;
+        transform(el,`translate3d(${x}px,${(1-fan)*(i===1?0:75)}px,0) rotate(${angle}deg)`);
+      });
+    }
+    if(changed(faq)) {
+      const fp = motion ? progress(faq) : .5;
+      transform(faqSymbol,`rotate(${(fp-.5)*35}deg) translateY(${(fp-.5)*-90}px)`);
+      questions.forEach((el,i) => {
+        const p = motion ? entry(top(el),vh,.99,.65) : 1;
+        transform(el,`translateX(${(1-p)*(30+i*8)}px)`);
+        opacity(el,lerp(.35,1,p));
+      });
+    }
+    if(changed(contact)) {
+      const ct = top(contact);
+      const cp = motion ? ease(range(vh-ct,0,vh*.65)) : 1;
+      set(contact,'--contact-radius',`${lerp(20,150,cp)}%`);
+      transform(contactMain,`translateX(${motion ? (1-cp)*-60 : 0}px)`);
+      transform(contactCircle,`rotate(${motion ? (1-cp)*-75 : 0}deg)`);
+      transform(contactBottom,`translateX(${motion ? (1-cp)*40 : 0}px)`);
+    }
+    if(changed(footer)) {
+      const footerP = motion ? entry(top(footer),vh,1,.7) : 1;
+      transform(footerTop,`translateY(${(1-footerP)*45}px)`);
+    }
   }
   function schedule(remeasure = false) {
     if (remeasure) measuring = true;
