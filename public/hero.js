@@ -51,8 +51,9 @@
   const ready=()=>vault.classList.toggle('is-ready',vaultImages.every(img=>img.complete&&img.naturalWidth>0));
   vaultImages.forEach(img=>img.addEventListener('load',ready));
   ready();
-  let enabled=false;
+  let enabled=false,stageHeight=0,lastPaintKey="";
   function configure(vh) {
+    lastPaintKey="";
     // Keep all essential content available at high zoom and in short landscape views.
     enabled=!reduced.matches && vh>=640;
     hero.classList.toggle('nx-enabled',enabled);
@@ -67,6 +68,7 @@
         hero.classList.remove('nx-enabled');
       }
     }
+    stageHeight=stage.offsetHeight;
   }
   function paint(value,mobile) {
     const f=heroFrame(enabled?value:0,mobile);
@@ -82,6 +84,9 @@
       f.invitationScale=mix(.94,1,last);
       f.chapter=f.p<.225?0:f.p<.555?1:f.p<.9?2:3;
     }
+    const paintKey=[f.p,mobile,enabled,immersive].join('|');
+    if(paintKey===lastPaintKey){window.nexoVault3D?.paint(f,mobile);return;}
+    lastPaintKey=paintKey;
     hero.style.setProperty('--nx-progress',enabled?f.p:0);
     hero.style.setProperty('--nx-immersion',ease(range(f.p,.4,.51)));
     hero.style.setProperty('--nx-final-view',ease(range(f.p,.86,.95)));
@@ -90,8 +95,10 @@
     hero.classList.toggle('nx-paper-ending',immersive&&lightTone);
     hero.style.setProperty('--nx-ink',lightTone?'#233215':'#e3ecd7');
     hero.dataset.tone=lightTone?'light':'dark';
+    if(!immersive){
     lime.style.clipPath=`circle(${f.lime*150}% at 50% 55%)`;
     paper.style.clipPath=`circle(${f.paper*150}% at 80% 55%)`;
+    }
     scenes.forEach((el,i)=>{
       const shown=f.scenes[i]>.015;
       el.style.opacity=f.scenes[i];
@@ -101,6 +108,7 @@
       if(i===1) el.style.transform=`translate3d(0,${(immersive&&f.p>.45?-120:24)*(1-f.scenes[1])}px,0)`;
       if(i===3) el.style.transform=`translate3d(0,${30*(1-f.scenes[3])}px,0) scale(${f.invitationScale})`;
     });
+    if(!immersive){
     vault.style.left=f.left+'%';vault.style.top=f.top+'%';
     vault.style.opacity=f.vaultOpacity;
     vault.style.visibility=f.vaultOpacity>.001?'visible':'hidden';
@@ -110,6 +118,7 @@
     wheel.style.transform=`translate(-50%,-50%) translateZ(16px) rotate(${f.wheelAngle}deg)`;
     glow.style.opacity=f.glow*(1-f.enter);
     vault.style.setProperty('--vault-unlock',f.unlock);
+    }
     disciplines.forEach((el,i)=>{
       const side=i===0?-1:i===2?1:0;
       el.style.transform=`translate3d(${side*(1-f.open)*(mobile?20:80)}px,${(1-f.open)*22}px,0)`;
@@ -120,9 +129,10 @@
     first.style.transform=`translateX(${-f.desireX*(mobile?70:220)}px)`;
     last.style.transform=`translateX(${f.desireX*(mobile?65:190)}px)`;
     chapters.forEach((el,i)=>el.classList.toggle('is-current',i===f.chapter));
-    $('[data-hero-count]').textContent=String(f.chapter+1).padStart(2,'0');
+    const count=$('[data-hero-count]'),label=String(f.chapter+1).padStart(2,'0');
+    if(count.textContent!==label)count.textContent=label;
     window.nexoVault3D?.paint(f,mobile);
   }
   // The page's existing driver calls this controller: one scroll listener/paint loop.
-  window.nexoHero={configure,paint,get enabled(){return enabled;},get stageHeight(){return stage.offsetHeight;}};
+  window.nexoHero={configure,paint,get enabled(){return enabled;},get stageHeight(){return stageHeight;}};
 })();

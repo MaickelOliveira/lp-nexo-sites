@@ -1,5 +1,6 @@
 import * as THREE from './vendor/three.module.min.js';
-import {buildHeist,heistFlight} from './vault-heist.js?v=16';
+import {buildHeist,heistFlight} from './vault-heist.js?v=perf1';
+import {batchStaticMeshes} from './vault-performance.js?v=perf1';
 
 const clamp=v=>Math.max(0,Math.min(1,v));
 const ease=v=>{const p=clamp(v);return p*p*(3-2*p);};
@@ -99,6 +100,7 @@ export function buildJourney() {
     const lamp=new THREE.PointLight(0xf0eedb,5,12,2);lamp.position.set(0,1.6,z);root.add(lamp);lamps.push(lamp);
     box(1.4,.015,.8,light,0,2.1,z);
   }
+  batchStaticMeshes(root);
   // Fade the room away while keeping the gold as a live 3D foreground object.
   const backdropMeshes=[],backdropMaterials=new Map();
   root.traverse(o=>{

@@ -1,6 +1,7 @@
 import * as THREE from './vendor/three.module.min.js';
-import {buildVault} from './vault-geometry.js';
-import {buildJourney,journeyFrame} from './vault-journey.js?v=16';
+import {buildVault} from './vault-geometry.js?v=perf1';
+import {buildJourney,journeyFrame} from './vault-journey.js?v=perf1';
+import {qualityFor} from './vault-performance.js?v=perf1';
 
 const hero=document.querySelector('.nexo-hero');
 const stage=hero?.querySelector('.nx-stage');
@@ -8,7 +9,9 @@ const fallback=hero?.querySelector('.nx-vault');
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 const finePointer=matchMedia('(hover: hover) and (pointer: fine)');
 let renderer,environment,model,journey,lastFrame,lastMobile=false,width=0,height=0,baseWidth=0;
-let ready=false,disposed=false;
+let ready=false,disposed=false,active=true,goldShadowReady=false;
+const quality=qualityFor({pixelRatio:window.devicePixelRatio||1,coarse:!finePointer.matches,memory:navigator.deviceMemory,cores:navigator.hardwareConcurrency});
+let pixelRatio=quality.pixelRatio,slowFrames=0;
 let renderedKey='';
 const pointer={x:0,y:0};
 const scene=new THREE.Scene();
@@ -20,16 +23,19 @@ function measure() {
   if(!renderer||disposed)return;
   const w=stage.clientWidth,h=stage.clientHeight;
   if(w!==width||h!==height) {
-    width=w;height=h;renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+    width=w;height=h;renderer.setPixelRatio(pixelRatio);
     renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();
   }
-  baseWidth=fallback.offsetWidth;
+  baseWidth=fallback.offsetWidth;renderedKey='';goldShadowReady=false;
   hero.classList.toggle('nx-compact-ending',width/height<1.55||width<=700);
 }
 function paint(frame,mobile) {
   lastFrame=frame;lastMobile=mobile;
-  if(!ready||disposed)return;
-  measure();
+  if(!ready||disposed||!active||document.hidden)return;
+  if(reduced.matches||!hero.classList.contains('nx-enabled')){
+    if(hero.classList.contains('nx-webgl')){hero.classList.remove('nx-webgl');renderer.domElement.style.visibility='hidden';requestPaint();}
+    return;
+  }
   const key=[frame.p,mobile,width,height,baseWidth,pointer.x,pointer.y].join('|');
   if(key===renderedKey)return;
   // Keep rendering through the final hero chapter, after the exterior is behind us.
@@ -46,16 +52,22 @@ function paint(frame,mobile) {
   const compactEnding=width/height<1.55||mobile;
   const flight=journeyFrame(frame.p,8.5/scale,compactEnding);
   journey.pose(frame.p,flight,compactEnding);
-  studioLights.forEach(({light,base})=>{light.intensity=base*(1-flight.inside*.78);if(base===3.2)light.castShadow=frame.enter<.12;});
+  studioLights.forEach(({light,base})=>{light.intensity=base*(1-flight.inside*.78);});
   model.interior.visible=frame.p<.405;
   for(const child of model.root.children) if(child!==journey.root&&child!==model.interior) child.visible=flight.z>-.65;
   camera.position.set(flight.x*scale,flight.y*scale,flight.z*scale);
   look.set(flight.lookX*scale,flight.lookY*scale,camera.position.z-4*scale);
   camera.lookAt(look);camera.rotateZ(flight.roll);
-  renderer.shadowMap.enabled=frame.enter<.12||frame.p>.84;
+  // Camera motion does not alter the room's shadow map. Reuse it after entry.
+  renderer.shadowMap.needsUpdate=quality.shadows&&(frame.p<.405||(frame.p>.84&&!goldShadowReady));
+  if(frame.p>.84)goldShadowReady=true;
   try {
+    const started=performance.now();
     renderer.render(scene,camera);
     renderedKey=key;
+    // Sustained slow submission lowers the render buffer, never the text/UI.
+    slowFrames=performance.now()-started>22?slowFrames+1:Math.max(0,slowFrames-1);
+    if(slowFrames>=12&&pixelRatio>1){pixelRatio=Math.max(1,pixelRatio-.25);renderer.setPixelRatio(pixelRatio);renderedKey='';slowFrames=0;requestPaint();}
     if(!hero.classList.contains('nx-webgl')) {hero.classList.add('nx-webgl');requestPaint();}
   } catch {
     ready=false;hero.classList.remove('nx-webgl');renderer.domElement.style.visibility='hidden';requestPaint();
@@ -85,7 +97,7 @@ async function start() {
     renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance'});
     renderer.setClearColor(0x000000,0);renderer.outputColorSpace=THREE.SRGBColorSpace;
     renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
-    renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+    renderer.shadowMap.enabled=quality.shadows;renderer.shadowMap.autoUpdate=false;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
     renderer.domElement.className='nx-vault-canvas';renderer.domElement.setAttribute('aria-hidden','true');
     stage.append(renderer.domElement);
     renderer.domElement.addEventListener('webglcontextlost',contextLost);
@@ -93,7 +105,7 @@ async function start() {
     measure();
     const loader=new THREE.TextureLoader();
     const textures=await Promise.all(['frame','door'].map(name=>loader.loadAsync(new URL(`./assets/vault/vault-${name}.webp`,import.meta.url).href)));
-    textures.forEach(t=>{t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());});
+    textures.forEach(t=>{t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());});
     // Softboxes provide reflections on the actual beveled metal surfaces.
     const room=new THREE.Scene();room.background=new THREE.Color(0x343a40);
     for(const [x,y,z,w,h,intensity] of [[-5,3,3,3,9,5],[4,3,1,2,8,3],[0,6,-1,9,4,4]]) {
@@ -105,18 +117,24 @@ async function start() {
     room.traverse(o=>{o.geometry?.dispose();o.material?.dispose();});
     scene.add(new THREE.HemisphereLight(0xdbe9fa,0x151d11,1.8));
     const key=new THREE.DirectionalLight(0xf3f7ff,3.2);key.position.set(-3,5,7);key.castShadow=true;
-    key.shadow.mapSize.set(1024,1024);Object.assign(key.shadow.camera,{left:-7,right:7,top:6,bottom:-6,near:.1,far:22});key.shadow.bias=-.0003;
+    key.shadow.mapSize.set(512,512);Object.assign(key.shadow.camera,{left:-7,right:7,top:6,bottom:-6,near:.1,far:22});key.shadow.bias=-.0003;
     scene.add(key);
     const rim=new THREE.DirectionalLight(0xc1f731,1.7);rim.position.set(5,1,-3);scene.add(rim);
     const fill=new THREE.DirectionalLight(0xc6d6ec,.8);fill.position.set(3,-2,4);scene.add(fill);
     studioLights.push({light:key,base:3.2},{light:rim,base:1.7},{light:fill,base:.8});
     model=buildVault({frame:textures[0],door:textures[1]});scene.add(model.root);
     journey=buildJourney();model.root.add(journey.root);
+    // Prepare the lighting/fade variants before revealing the canvas. This avoids
+    // first-time shader compilation exactly as the visitor enters the vault.
+    for(const p of [0,.7,.93]){journey.pose(p);await renderer.compileAsync(scene,camera);}
+    journey.pose(0);
     ready=true;
-    window.nexoVault3D={paint};
+    window.nexoVault3D={paint,measure,setActive(value){active=value;}};
     stage.addEventListener('pointermove',pointerMove,{passive:true});
     stage.addEventListener('pointerleave',pointerLeave,{passive:true});
-    window.addEventListener('resize',requestPaint,{passive:true});
+    const resize=()=>{measure();requestPaint();};
+    new ResizeObserver(resize).observe(stage);
+    window.addEventListener('resize',resize,{passive:true});
     // The next existing scroll-driver frame positions the object before revealing it.
     requestPaint();
   } catch {

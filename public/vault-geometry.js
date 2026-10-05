@@ -1,4 +1,5 @@
 import * as THREE from './vendor/three.module.min.js';
+import {batchStaticMeshes} from './vault-performance.js?v=perf1';
 
 // World-space dimensions keep the hinge, plate, bolts and opening aligned.
 export const VAULT = Object.freeze({outer:1.02,opening:.615,bodyDepth:.56,doorRadius:.658,doorDepth:.22,hingeX:-.73});
@@ -82,7 +83,7 @@ export function buildVault(textures={}) {
   for(let i=0;i<8;i++) {
     const angle=i*Math.PI/4;
     const bolt=mesh(new THREE.BoxGeometry(.15,.049,.085),edge,door);bolt.rotation.z=angle;bolt.position.z=.108;
-    bolts.push({mesh:bolt,angle});
+    bolt.userData.dynamic=true;bolts.push({mesh:bolt,angle});
   }
   const shaft=disc(.063,.16,edge,door);shaft.position.z=.275;
   const wheel=new THREE.Group();wheel.position.z=.365;door.add(wheel);
@@ -107,5 +108,6 @@ export function buildVault(textures={}) {
     }
   }
   pose({doorAngle:0,wheelAngle:0,unlock:0});
+  batchStaticMeshes(root);
   return {root,pivot,door,plate,body,wheel,bolts,interior,pose};
 }

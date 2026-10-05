@@ -73,6 +73,7 @@
   function measure() {
     window.nexoHero?.configure(window.innerHeight);
     window.nexoPortfolio?.measure(window.innerHeight);
+    window.nexoVault3D?.measure();
     metrics = new Map(tracked.map(el => [el, { top: offsetTop(el), height: el.offsetHeight }]));
     intentRows=intentLines.map(el=>({top:el.offsetTop,height:el.offsetHeight}));
     const trackTop=offsetTop($('.intent-track'));
@@ -92,9 +93,16 @@
     });
     measuring = false;
   }
-  const transform = (el, value) => { if (el) el.style.transform = value; };
-  const set = (el, key, value) => { if (el) el.style.setProperty(key,value); };
-  function opacity(el,value) { if (el) el.style.opacity = String(value); }
+  const styleCache=new WeakMap();
+  const set=(el,key,value)=>{
+    if(!el)return;
+    let previous=styleCache.get(el);
+    if(!previous){previous=new Map();styleCache.set(el,previous);}
+    const text=String(value);if(previous.get(key)===text)return;
+    previous.set(key,text);el.style.setProperty(key,text);
+  };
+  const transform=(el,value)=>set(el,'transform',value);
+  const opacity=(el,value)=>set(el,'opacity',value);
   function actionable(el, shown) {
     if (!el) return;
     // Offstage controls must not receive keyboard focus. Never steal existing focus.
@@ -112,8 +120,10 @@
       return m ? clamp((y + vh - m.top) / (m.height + vh)) : 0;
     };
     const heroController = window.nexoHero;
-    const hp = heroController?.enabled ? range(y-(metrics.get(hero)?.top||0),0,Math.max(hero.offsetHeight-heroController.stageHeight,1)) : 0;
-    heroController?.paint(hp,window.innerWidth<=700);
+    const hp = heroController?.enabled ? range(y-(metrics.get(hero)?.top||0),0,Math.max((metrics.get(hero)?.height||0)-heroController.stageHeight,1)) : 0;
+    const heroVisible=top(hero)<vh&&top(hero)+(metrics.get(hero)?.height||0)>0;
+    window.nexoVault3D?.setActive(heroVisible);
+    if(heroVisible)heroController?.paint(hp,window.innerWidth<=700);
     window.nexoPortfolio?.paint(y);
 
     // Header contrast follows the surface under it, including reverse traversal.
@@ -163,10 +173,11 @@
       const enter = motion ? entry(before,vh,.99,.52) : 1;
       transform(el,`perspective(1300px) translateY(${(1-enter)*48}px) scale(${1-overlap*.055}) rotateX(${-overlap*3}deg)`);
       // Keep stacked text readable until the next card physically covers it.
-      el.style.filter = motion ? `brightness(${1-overlap*.17})` : 'none';
+      set(el,'filter',motion ? `brightness(${1-overlap*.17})` : 'none');
     });
     const counter = $('[data-method-number]');
-    if (counter) counter.textContent = String(activeStep+1).padStart(2,'0');
+    const label=String(activeStep+1).padStart(2,'0');
+    if(counter&&counter.textContent!==label)counter.textContent=label;
     set($('.method-counter'),'--method-progress',(activeStep+1)/4);
     const difference = $('.difference-statement');
     const dp = motion ? entry(top(difference),vh,.98,.38) : 1;

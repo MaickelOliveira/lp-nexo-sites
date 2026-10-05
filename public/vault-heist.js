@@ -1,4 +1,5 @@
 import * as THREE from './vendor/three.module.min.js';
+import {batchStaticMeshes} from './vault-performance.js?v=perf1';
 
 const clamp=v=>Math.max(0,Math.min(1,v));
 const ease=v=>{v=clamp(v);return v*v*(3-2*v);};
@@ -98,7 +99,7 @@ export function buildHeist() {
   const top=new THREE.PointLight(0xffffff,0,8,2);top.position.set(1.4,1.5,-26);root.add(top);
   const key=new THREE.SpotLight(0xfff3dc,0,12,.66,.7,2);key.position.set(-.6,2.5,-24.1);
   key.target.position.set(.38,-.3,-26.75);key.castShadow=true;
-  key.shadow.mapSize.set(1024,1024);key.shadow.camera.near=.2;key.shadow.camera.far=12;
+  key.shadow.mapSize.set(512,512);key.shadow.camera.near=.2;key.shadow.camera.far=12;
   key.shadow.bias=-.0001;key.shadow.normalBias=.012;key.shadow.radius=2;
   root.add(key,key.target);
   function pose(p,mobile=false) {
@@ -108,12 +109,13 @@ export function buildHeist() {
     baseMat.metalness=THREE.MathUtils.lerp(.7,.12,paper);
     baseMat.roughness=THREE.MathUtils.lerp(.3,.46,paper);
     warm.intensity=discovery*11;top.intensity=discovery*9;key.intensity=discovery*48;
-    key.visible=discovery>0;
+    // Keep the light layout stable: intensity controls the reveal without shader recompilation.
     key.target.position.x=mobile?0:.38;
     treasure.position.x=mobile?0:.38;
     treasure.position.y=mobile?-.25:0;
     treasure.scale.set(mobile?.4:.82,1,mobile?.88:1);
     field.visible=p>.5;
   }
+  batchStaticMeshes(root);
   pose(0);return {root,field,treasure,ingots,pose};
 }

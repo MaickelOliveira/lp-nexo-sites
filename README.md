@@ -40,3 +40,11 @@ Uma hospedagem apenas estática não executa `/api/leads` nem `/api/meta/events`
 Configure no servidor as variáveis de `.env.example`: `META_PIXEL_ID`, `META_GRAPH_VERSION`, `META_ACCESS_TOKEN`, `WHATSAPP_NUMBER`, `CRM_WEBHOOK_URL` e, se exigido pelo CRM, `CRM_WEBHOOK_TOKEN`. Use o número de WhatsApp da Nexo: `5544998168355`.
 
 Nunca publique tokens ou a URL privada do webhook no GitHub nem no JavaScript do navegador. As respostas do formulário seguem para o CRM; o redirecionamento ao WhatsApp usa uma mensagem genérica, sem as respostas.
+
+## Desempenho da experiência 3D
+
+O 3D é carregado após a primeira pintura da página e respeita economia de dados e movimento reduzido. Peças estáticas são agrupadas mantendo os mecanismos animados separados. A resolução do canvas é limitada por aparelho; texto e interface continuam na resolução normal. A animação pausa fora da hero, reutiliza sombras após a entrada e prepara os shaders antes de exibir o canvas.
+
+`npm run build` também gera Brotli/gzip e um manifesto de cache em `dist/server/assets.json`. Publique o `dist` completo ou reconstrua o Dockerfile. O servidor Node entrega os arquivos comprimidos e responde `304` quando o conteúdo não mudou. Ao alterar módulos JS/CSS versionados, atualize os parâmetros `?v=` no HTML e nos imports correspondentes.
+
+Verificação: `npm test`. Os testes cobrem preservação da geometria agrupada, reversibilidade do percurso, orçamento de peças, compressão e os fluxos existentes de leads e conversões. A taxa de quadros deve ser verificada em aparelhos com WebGL real; contagem de peças e bytes não equivalem a uma medição de FPS.

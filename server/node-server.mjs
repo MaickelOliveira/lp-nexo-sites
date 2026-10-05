@@ -1,10 +1,12 @@
 import { createReadStream } from 'node:fs';
-import { stat } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
-import { dirname, extname, resolve, sep } from 'node:path';
+import { dirname, extname, resolve, sep, relative } from 'node:path';
 import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import worker from './index.js';
+import {selectEncoding,isNotModified} from './static-assets.mjs';
+const assets=Object.assign(Object.create(null),JSON.parse(await readFile(new URL('./assets.json',import.meta.url),'utf8')));
 
 const clientRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../client');
 const host = process.env.HOST || '0.0.0.0';
@@ -94,21 +96,25 @@ async function sendStatic(request, result, pathname) {
     return;
   }
 
-  let file;
-  try {
-    const details = await stat(target);
-    file = details.isDirectory() ? resolve(target, 'index.html') : target;
-    if (details.isDirectory()) await stat(file);
-  } catch {
-    result.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-    result.end('Not found');
-    return;
+  let file=target;
+  let asset=assets[relative(clientRoot,file).split(sep).join('/')];
+  if(!asset){file=resolve(target,'index.html');asset=assets[relative(clientRoot,file).split(sep).join('/')];}
+  if(!asset){
+    result.writeHead(404,{'Content-Type':'text/plain; charset=utf-8'});result.end('Not found');return;
   }
-
-  result.statusCode = 200;
-  result.setHeader('Content-Type', contentTypes.get(extname(file).toLowerCase()) || 'application/octet-stream');
-  result.setHeader('Cache-Control', extname(file) === '.html' ? 'no-cache' : 'public, max-age=3600');
-  result.setHeader('X-Content-Type-Options', 'nosniff');
+  const encoding=selectEncoding(request.headers['accept-encoding'],asset);
+  const versioned=new URL(request.url||'/',requestOrigin(request)).searchParams.has('v');
+  result.statusCode=200;
+  result.setHeader('Content-Type',contentTypes.get(extname(file).toLowerCase())||'application/octet-stream');
+  result.setHeader('Cache-Control',extname(file)==='.html'?'no-cache':versioned?'public, max-age=31536000, immutable':'public, max-age=3600');
+  result.setHeader('ETag',asset.etag);
+  result.setHeader('Vary','Accept-Encoding');
+  result.setHeader('X-Content-Type-Options','nosniff');
+  if(encoding){result.setHeader('Content-Encoding',encoding);file+=encoding==='br'?'.br':'.gz';}
+  if(isNotModified(request.headers['if-none-match'],asset.etag)){
+    result.statusCode=304;result.end();return;
+  }
+  result.setHeader('Content-Length',encoding?asset[encoding]:asset.size);
   if (request.method === 'HEAD') {
     result.end();
     return;

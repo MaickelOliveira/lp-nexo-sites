@@ -36,7 +36,14 @@
   const viewport = journey.querySelector('.work-panels');
   const panels = all('[data-service-panel]');
   const choices = all('[data-service-tab]');
-  panels.forEach(panel=>panel.querySelectorAll('img').forEach(img=>{img.loading='eager';}));
+  // Preload covers shortly before the section, instead of competing with hero assets.
+  const preload=new IntersectionObserver(entries=>{
+    if(entries.some(entry=>entry.isIntersecting)){
+      panels.forEach(panel=>panel.querySelectorAll('img').forEach(img=>{img.loading='eager';}));
+      preload.disconnect();
+    }
+  },{rootMargin:'1200px'});
+  preload.observe(journey);
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const currentName = $('[data-project-current]');
   const currentCount = $('[data-project-count]');
@@ -47,7 +54,7 @@
     for(let el=element;el;el=el.offsetParent) y+=el.offsetTop;
     return y;
   };
-  let enabled=false, story, start=0, top=0, height=0, active=-1;
+  let enabled=false, story, start=0, top=0, height=0, active=-1,viewHeight=0,lastDistance=null;
   let links=[], naturalTops=[];
   const setActive = index => {
     if(active===index) return;
@@ -64,6 +71,7 @@
     liveStatus.textContent=`Projeto ${index+1} de ${panels.length}: ${choices[index].dataset.projectName}.`;
   };
   function measure(vh) {
+    lastDistance=null;
     top=$('.site-header').offsetHeight+16;
     height=vh-top-22;
     enabled=!reduced.matches && vh>=560 && height>=420;
@@ -71,7 +79,8 @@
     journey.style.setProperty('--portfolio-top',top+'px');
     journey.style.setProperty('--portfolio-height',height+'px');
     if(enabled) {
-      story=timeline(panels.map(p=>p.offsetHeight),viewport.clientHeight,vh);
+      viewHeight=viewport.clientHeight;
+      story=timeline(panels.map(p=>p.offsetHeight),viewHeight,vh);
       journey.style.height=story.total+height+'px';
       start=offset(journey)-top;
       links=panels.map(panel=>[...panel.querySelectorAll('a')].map(el=>({
@@ -97,7 +106,10 @@
       setActive(index);
       return;
     }
-    const f=frameAt(y-start,story);
+    const distance=Math.max(0,Math.min(story.total,y-start));
+    if(distance===lastDistance)return;
+    lastDistance=distance;
+    const f=frameAt(distance,story);
     setActive(f.active);
     journey.style.setProperty('--portfolio-progress',f.progress);
     choices.forEach((choice,i)=>{
@@ -121,7 +133,7 @@
       panel.style.transform=`translate3d(${incoming?(1-f.transition)*36:-f.transition*36}px,${-pan}px,0)`;
       // Keyboard navigation stays within the portion of the project on screen.
       links[i].forEach(link=>{
-        const visible=interactive&&link.top-pan>=0&&link.bottom-pan<=viewport.clientHeight;
+        const visible=interactive&&link.top-pan>=0&&link.bottom-pan<=viewHeight;
         link.el.tabIndex=visible?0:-1;
       });
     });
