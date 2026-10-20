@@ -1,151 +1,107 @@
 (() => {
   'use strict';
-  const frameTime = (progress, duration, fps = 24) => {
-    if (!Number.isFinite(duration) || duration <= 0) return 0;
-    const last = Math.max(0, Math.ceil(duration * fps) - 1);
-    return Math.round(Math.max(0, Math.min(1, progress)) * last) / fps;
-  };
-  if (typeof module !== 'undefined' && module.exports) module.exports = { frameTime };
-  if (typeof document === 'undefined') return;
   const hero = document.querySelector('.nexo-hero');
   const video = hero?.querySelector('.nx-hero-film');
   if (!video) return;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-  let desired = 0, active = true, loaded = false, raf = 0;
-  let awaitingFrame = false, presentationRaf = 0;
-  let loadedUrl = '', loadVersion = 0;
-  let playhead = null, lastTick = 0, mobile = false, lastPosition = '';
-  const allowed = () => !reduced.matches && !navigator.connection?.saveData && window.nexoHero?.enabled;
-  function stop() {
-    if (raf) cancelAnimationFrame(raf);
-    if (presentationRaf) cancelAnimationFrame(presentationRaf);
-    raf = 0;
-    presentationRaf = 0;
-    awaitingFrame = false;
-    lastTick = 0;
-  }
-  function seek(now) {
-    raf = 0;
-    if (!active || document.hidden || !allowed() || video.readyState < 1 || !Number.isFinite(video.duration)) {
-      lastTick = 0;
-      return;
+  let active = true, progress = 0, worker, renderer, canvas, started = false, fallback = false;
+  let sizeKey = '', resizeFrame = 0, sourcePortrait = false;
+  const allowed = () => !reduced.matches && !navigator.connection?.saveData && !!window.nexoHero?.enabled;
+  const status = message => {
+    if (message.type === 'ready') hero.classList.add('nx-sequence-ready');
+    if (message.type === 'error') useVideo();
+    if (message.type === 'quality' && canvas) {
+      canvas.dataset.quality = message.level;
+      canvas.dataset.frame = message.frame;
+      canvas.dataset.sourceWidth = message.sourceWidth;
+      canvas.dataset.sourceHeight = message.sourceHeight;
     }
-    if (awaitingFrame || video.seeking) return;
-    const target = frameTime(desired, video.duration);
-    const dt = lastTick ? Math.min(50, now - lastTick) : 1000 / 60;
-    lastTick = now;
-    // A short, time-based catch-up absorbs wheel steps without changing native
-    // page scrolling. Large navigation jumps do not create a long playback tail.
-    if (playhead === null || Math.abs(target - playhead) > 1.25) playhead = target;
-    else playhead += (target - playhead) * (1 - Math.exp(-dt / 65));
-    if (Math.abs(target - playhead) < 1 / 96) playhead = target;
-    const time = Math.round(playhead * 24) / 24;
-    // Keep only the newest target and let each decoded frame reach the screen.
-    // `seeked` alone does not mean the compositor has displayed that frame.
-    if (Math.abs(video.currentTime - time) >= 1 / 48) {
-      awaitingFrame = true;
-      video.currentTime = time;
-    }
-    const progress = video.duration > 0 ? playhead / video.duration : 0;
-    const position = mobile ? 67 - 17 * Math.min(progress / .4, 1) + 17 * Math.max(0, (progress - .75) / .25) : 50;
-    const crop = `${position.toFixed(1)}% center`;
-    if (crop !== lastPosition) { video.style.objectPosition = crop; lastPosition = crop; }
-    if (playhead !== target) schedule();
-    else lastTick = 0;
+  };
+  function useVideo() {
+    if (fallback) return;
+    fallback = true;
+    worker?.terminate(); renderer?.setActive(false);
+    canvas?.remove(); hero.classList.remove('nx-sequence-ready');
+    const script = document.createElement('script');
+    script.src = './hero-video-fallback.js?v=1';
+    script.onload = () => { window.nexoHeroVideo.setActive(active); window.nexoHeroVideo.paint(progress, innerWidth <= 700); };
+    document.head.append(script);
   }
-  function schedule() { if (!raf && !awaitingFrame && !presentationRaf) raf = requestAnimationFrame(seek); }
-  function presentFrame() {
-    if (presentationRaf) cancelAnimationFrame(presentationRaf);
-    if (!active || document.hidden || !allowed()) {
-      awaitingFrame = false;
-      presentationRaf = 0;
-      return;
-    }
-    // Leave one rendering opportunity between decoding and the next seek.
-    // Scroll updates during this interval replace the target without polling.
-    presentationRaf = requestAnimationFrame(() => {
-      presentationRaf = 0;
-      awaitingFrame = false;
-      schedule();
-    });
+  function dimensions() {
+    const {width, height} = hero.querySelector('.nx-stage').getBoundingClientRect();
+    const portrait = innerWidth <= 700 && height > width;
+    // Allocate the visible slice at screen density, up to the original 4K.
+    const ratio = Math.min(devicePixelRatio || 1, 3, 3840 / width, 2160 / height);
+    return {width: Math.max(1, Math.round(width * ratio)), height: Math.max(1, Math.round(height * ratio)), portrait};
   }
-  async function load() {
-    if (!active || document.hidden || !allowed()) return;
-    // The mobile export follows the same moving crop at 1080 square pixels,
-    // derived from the 4K master; landscape uses the full 3840 x 2160 film.
-    const portrait = matchMedia('(max-width: 700px) and (orientation: portrait)').matches;
-    const url = portrait ? video.dataset.mobile : video.dataset.desktop;
-    if (loaded && loadedUrl === url) return;
-    loaded = true;
-    loadedUrl = url;
-    const version = ++loadVersion;
-    video.muted = true;
-    video.preload = 'auto';
+  function send(message) {
+    if (worker) worker.postMessage(message);
+    else if (renderer) {
+      if (message.type === 'progress') renderer.setProgress(message.progress);
+      else if (message.type === 'active') renderer.setActive(message.active);
+      else if (message.type === 'resize') renderer.resize(message.width, message.height, message.portrait);
+    }
+  }
+  function resize() {
+    resizeFrame = 0;
+    if (!canvas || fallback) return;
+    const size = dimensions(), key = JSON.stringify(size);
+    if (size.portrait !== sourcePortrait) {
+      worker?.terminate(); renderer?.setActive(false);
+      worker = renderer = null; canvas.remove(); canvas = null;
+      hero.classList.remove('nx-sequence-ready'); started = false;
+      start(); return;
+    }
+    if (key !== sizeKey) { sizeKey = key; send({type: 'resize', ...size}); }
+  }
+  function queueResize() { if (!resizeFrame) resizeFrame = requestAnimationFrame(resize); }
+  async function start() {
+    if (started || fallback || !active || document.hidden || !allowed()) return;
+    started = true;
+    if (!window.NexoSequenceRenderer || typeof createImageBitmap !== 'function') { useVideo(); return; }
+    canvas = document.createElement('canvas');
+    canvas.className = 'nx-hero-sequence';
+    canvas.setAttribute('aria-hidden', 'true');
+    video.after(canvas);
+    const size = dimensions(); sizeKey = JSON.stringify(size);
+    sourcePortrait = size.portrait;
+    const url = new URL(size.portrait ? video.dataset.sequenceMobile : video.dataset.sequence, location.href).href;
     try {
-      // The hosted asset endpoint may return 200 for byte-range requests.
-      // A local Blob makes every forward/reverse seek independent of that server.
-      const response = await fetch(url, { credentials: 'same-origin' });
-      if (!response.ok) throw new Error('Video unavailable');
-      const blob = await response.blob();
-      if (version !== loadVersion) return;
-      const previous = video.src;
-      stop();
-      video.src = URL.createObjectURL(new Blob([blob], { type: 'video/mp4' }));
-      if (previous?.startsWith('blob:')) URL.revokeObjectURL(previous);
-      primed = false;
-      video.load();
-      schedule();
-    } catch {
-      if (version !== loadVersion) return;
-      stop();
-      video.src = url;
-      video.load();
-    }
+      if (canvas.transferControlToOffscreen && typeof Worker === 'function') {
+        worker = new Worker('./hero-sequence-worker.js?v=1');
+        worker.onmessage = ({data}) => status(data);
+        worker.onerror = () => useVideo();
+        const surface = canvas.transferControlToOffscreen();
+        worker.postMessage({type: 'init', canvas: surface, url, ...size}, [surface]);
+      } else {
+        renderer = new NexoSequenceRenderer(canvas, url, status);
+        renderer.resize(size.width, size.height, size.portrait);
+        await renderer.init();
+      }
+      send({type: 'progress', progress});
+    } catch { useVideo(); }
   }
-  video.addEventListener('loadedmetadata', schedule);
-  video.addEventListener('loadeddata', schedule);
-  video.addEventListener('canplay', schedule);
-  video.addEventListener('progress', schedule);
-  // Safari/iOS may defer decoding until the first real gesture. Prime its
-  // muted decoder once, then immediately pause and return to the scroll target.
-  let primed = false;
-  function prime() {
-    if (primed || !allowed() || !active) return;
-    load();
-    if (!video.src) return;
-    primed = true;
-    const promise = video.play();
-    if (promise?.then) promise.then(() => { video.pause(); schedule(); }).catch(() => { primed = false; });
-  }
-  for (const event of ['touchstart', 'pointerdown', 'wheel', 'keydown']) {
-    window.addEventListener(event, prime, { passive: true });
-  }
-  video.addEventListener('seeked', presentFrame);
-  video.addEventListener('error', () => {
-    hero.classList.add('nx-video-error');
-    document.dispatchEvent(new CustomEvent('nexo:layout'));
-  });
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { stop(); playhead = null; }
-    else { load(); schedule(); }
+    if (fallback) return;
+    if (!document.hidden) start();
+    send({type: 'active', active: active && !document.hidden && allowed()});
   });
   reduced.addEventListener('change', () => {
-    if (reduced.matches) { stop(); playhead = null; }
-    else { load(); schedule(); }
+    if (fallback) return;
+    if (!reduced.matches) start();
+    send({type: 'active', active: active && !document.hidden && allowed()});
   });
+  window.addEventListener('resize', queueResize, {passive: true});
+  new ResizeObserver(queueResize).observe(hero.querySelector('.nx-stage'));
   window.nexoHeroVideo = {
-    paint(progress, isMobile) {
-      desired = Math.max(0, Math.min(1, progress));
-      mobile = isMobile;
-      if (!active) return;
-      load(); schedule();
+    paint(value) {
+      progress = Math.max(0, Math.min(1, value));
+      if (active && !document.hidden && allowed()) { start(); send({type: 'progress', progress}); }
     },
     setActive(value) {
-      if (active === value) return;
       active = value;
-      if (active) { load(); schedule(); }
-      else { stop(); playhead = null; }
-    },
-    frameTime
+      if (active) start();
+      send({type: 'active', active: active && !document.hidden && allowed()});
+    }
   };
 })();

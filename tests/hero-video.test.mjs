@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
 import { parseByteRange } from '../server/static-assets.mjs';
-const source = await readFile('public/hero-video.js', 'utf8');
+const source = await readFile('public/hero-video-fallback.js', 'utf8');
 const context = { module: { exports: {} } };
 vm.runInNewContext(source, context);
 const { frameTime } = context.module.exports;

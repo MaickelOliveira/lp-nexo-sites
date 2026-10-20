@@ -1,5 +1,8 @@
 /* The film replaces the WebGL renderer. Text stays native and sharp. */
 .nx-video .nx-hero-film { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% center; z-index: 1; pointer-events: none; background: #0e0e0e url('./assets/hero-video/frame-01.jpg') center / cover no-repeat; }
+.nx-video .nx-hero-sequence { position: absolute; inset: 0; display: block; width: 100%; height: 100%; z-index: 1; pointer-events: none; opacity: 0; }
+.nx-video.nx-sequence-ready .nx-hero-sequence { opacity: 1; }
+.nx-video.nx-sequence-ready .nx-hero-film { visibility: hidden; }
 .nx-video .nx-atmosphere, .nx-video .nx-treasure-paper { display: none; }
 .nx-video .nx-cinema-shade { background: linear-gradient(90deg,#02060499,transparent 70%),linear-gradient(#02060460,transparent 30%,transparent 70%,#02060480); }
 .nx-video .nx-opening { text-shadow: 0 2px 30px #0008; }
