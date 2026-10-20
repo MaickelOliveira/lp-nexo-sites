@@ -5,7 +5,7 @@ import { dirname, extname, resolve, sep, relative } from 'node:path';
 import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import worker from './index.js';
-import {selectEncoding,isNotModified} from './static-assets.mjs';
+import {selectEncoding,isNotModified,parseByteRange} from './static-assets.mjs';
 const assets=Object.assign(Object.create(null),JSON.parse(await readFile(new URL('./assets.json',import.meta.url),'utf8')));
 
 const clientRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../client');
@@ -24,6 +24,7 @@ const contentTypes = new Map([
   ['.jpg', 'image/jpeg'],
   ['.js', 'text/javascript; charset=utf-8'],
   ['.json', 'application/json; charset=utf-8'],
+  ['.mp4', 'video/mp4'],
   ['.png', 'image/png'],
   ['.svg', 'image/svg+xml'],
   ['.webp', 'image/webp'],
@@ -115,11 +116,25 @@ async function sendStatic(request, result, pathname) {
     result.statusCode=304;result.end();return;
   }
   result.setHeader('Content-Length',encoding?asset[encoding]:asset.size);
+  const media = extname(file) === '.mp4';
+  if (media) result.setHeader('Accept-Ranges', 'bytes');
+  const range = media && !encoding && !request.headers['if-range'] ? parseByteRange(request.headers.range, asset.size) : null;
+  if (range === false) {
+    result.statusCode = 416;
+    result.setHeader('Content-Range', `bytes */${asset.size}`);
+    result.setHeader('Content-Length', '0');
+    result.end(); return;
+  }
+  if (range) {
+    result.statusCode = 206;
+    result.setHeader('Content-Range', `bytes ${range.start}-${range.end}/${asset.size}`);
+    result.setHeader('Content-Length', range.end - range.start + 1);
+  }
   if (request.method === 'HEAD') {
     result.end();
     return;
   }
-  createReadStream(file).on('error', () => {
+  createReadStream(file, range || undefined).on('error', () => {
     if (!result.headersSent) result.writeHead(500);
     result.end();
   }).pipe(result);

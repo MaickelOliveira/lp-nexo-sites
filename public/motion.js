@@ -141,6 +141,7 @@
     const hp = heroController?.enabled ? range(y-(metrics.get(hero)?.top||0),0,Math.max((metrics.get(hero)?.height||0)-heroController.stageHeight,1)) : 0;
     const heroVisible=top(hero)<vh&&top(hero)+(metrics.get(hero)?.height||0)>0;
     window.nexoVault3D?.setActive(heroVisible);
+    window.nexoHeroVideo?.setActive(heroVisible);
     if(heroVisible)heroController?.paint(hp,window.innerWidth<=700);
     window.nexoPortfolio?.paint(y);
 

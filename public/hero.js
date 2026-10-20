@@ -59,17 +59,17 @@
   };
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
   const vaultImages=all('.nx-vault img');
-  const ready=()=>vault.classList.toggle('is-ready',vaultImages.every(img=>img.complete&&img.naturalWidth>0));
+  const ready=()=>vault?.classList.toggle('is-ready',vaultImages.every(img=>img.complete&&img.naturalWidth>0));
   vaultImages.forEach(img=>img.addEventListener('load',ready));
   ready();
   let enabled=false,stageHeight=0,lastPaintKey="",lastChapter=-1;
   function configure(vh) {
     lastPaintKey="";
     // Keep all essential content available at high zoom and in short landscape views.
-    enabled=!reduced.matches && vh>=640;
+    enabled=!reduced.matches && !(typeof navigator!=='undefined'&&navigator.connection?.saveData) && !hero.classList.contains('nx-video-error') && (hero.classList.contains('nx-video') || vh>=640);
     hero.classList.toggle('nx-enabled',enabled);
     // Natural content height catches enlarged type without relying on UA detection.
-    if(enabled) {
+    if(enabled && !hero.classList.contains('nx-video')) {
       const opening=$('.nx-opening');
       const contentEnd=$('.nx-opening-bottom').offsetTop+$('.nx-opening-bottom').offsetHeight;
       const footerStart=$('.nx-bottom').offsetTop;
@@ -83,8 +83,9 @@
   }
   function paint(value,mobile) {
     const f=heroFrame(enabled?value:0,mobile);
-    const immersive=hero.classList.contains('nx-webgl');
-    const paperFinal=immersive?ease(range(f.p,.905,.955)):0;
+    const film=hero.classList.contains('nx-video');
+    const immersive=film||hero.classList.contains('nx-webgl');
+    const paperFinal=immersive?ease(range(f.p,film ? .74 : .905,film ? .84 : .955)):0;
     if(immersive) {
       // Carry the approved copy through the entrance instead of leaving an empty ride.
       const next=ease(range(f.p,.525,.585)),last=ease(range(f.p,.865,.94));
@@ -96,7 +97,7 @@
       f.chapter=f.p<.225?0:f.p<.555?1:f.p<.9?2:3;
     }
     const paintKey=[f.p,mobile,enabled,immersive].join('|');
-    if(paintKey===lastPaintKey){window.nexoVault3D?.paint(f,mobile);return;}
+    if(paintKey===lastPaintKey){window.nexoVault3D?.paint(f,mobile);window.nexoHeroVideo?.paint(f.p,mobile);return;}
     lastPaintKey=paintKey;
     // Animate the affected layers directly, without invalidating inherited
     // custom properties across every descendant of the full-screen hero.
@@ -148,7 +149,7 @@
       chapters.forEach((el,i)=>el.classList.toggle('is-current',i===f.chapter));
       count.textContent=String(f.chapter+1).padStart(2,'0');
     }
-    window.nexoVault3D?.paint(f,mobile);
+    window.nexoVault3D?.paint(f,mobile);window.nexoHeroVideo?.paint(f.p,mobile);
   }
   // The page's existing driver calls this controller: one scroll listener/paint loop.
   window.nexoHero={configure,paint,frameAt:heroFrame,get enabled(){return enabled;},get stageHeight(){return stageHeight;}};

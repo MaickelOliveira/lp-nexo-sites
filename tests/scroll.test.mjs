@@ -132,6 +132,18 @@ test('hero paints only its visible text and affected layers; reverse scroll rest
   assert.equal(h.nodes.get('[data-hero-count]').textContent,'01');
 });
 
+test('video hero keeps scroll enabled in short windows and ignores hidden scene overflow',()=>{
+  const h=fixture(),e=h.element;
+  const hero=e('.nexo-hero');hero.classList.toggle('nx-video',true);
+  e('.nx-stage',0,480);e('.nx-opening',0,900);e('.nx-opening-bottom',400,200);e('.nx-bottom',390);e('.nx-invitation',0,900);
+  h.run(heroSource);h.window.nexoHero.configure(480);
+  assert.equal(h.window.nexoHero.enabled,true);
+  assert.equal(hero.classList.contains('nx-enabled'),true);
+  h.matchMedia('(prefers-reduced-motion: reduce)').matches=true;
+  h.window.nexoHero.configure(480);
+  assert.equal(h.window.nexoHero.enabled,false);
+});
+
 test('all four projects remain reachable and keyboard access follows the active cover in both directions',()=>{
   const h=fixture(),e=h.element;
   e('.portfolio-journey',10000,6000);e('.work-panels',0,600);e('.site-header',0,94);

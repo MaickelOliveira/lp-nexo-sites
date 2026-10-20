@@ -1,0 +1,32 @@
+/* The film replaces the WebGL renderer. Text stays native and sharp. */
+.nx-video .nx-hero-film { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% center; z-index: 1; pointer-events: none; background: #0e0e0e url('./assets/hero-video/frame-01.jpg') center / cover no-repeat; }
+.nx-video .nx-atmosphere, .nx-video .nx-treasure-paper { display: none; }
+.nx-video .nx-cinema-shade { background: linear-gradient(90deg,#02060499,transparent 70%),linear-gradient(#02060460,transparent 30%,transparent 70%,#02060480); }
+.nx-video .nx-opening { text-shadow: 0 2px 30px #0008; }
+.nx-video .nx-opening-note { color: #cbd3bd; }
+.nx-video.nx-paper-ending .nx-bottom { color: #233215; }
+.nx-video.nx-paper-ending .nx-invitation { text-shadow: 0 1px 18px #f0f1ebaa; }
+.nx-video.nx-video-error .nx-hero-film { background-image: url('./assets/hero-video/frame-01.jpg'); }
+@media(max-width:700px) {
+  .nx-video .nx-hero-film { object-position: 67% center; }
+  .nx-video .nx-opening { background: linear-gradient(#070b0bd9,transparent 52%,#070b0bd9 87%); }
+  .nx-video .nx-invitation { background: linear-gradient(#f0f1ebe6 0%,#f0f1ebbd 58%,transparent 88%); }
+  .nx-video .nx-cinema-shade { background: linear-gradient(#020604a8,transparent 40%,#02060490); }
+}
+@media(prefers-reduced-motion:reduce) { .nx-video .nx-hero-film { object-position: 67% center; } }
+@media(max-height:700px) and (min-width:701px) {
+  .nx-video .nx-opening { padding-top: 100px; }
+  .nx-video .nx-opening h1 { font-size: clamp(36px,8svh,60px); margin-top: 12px; }
+  .nx-video .nx-opening-bottom { flex-direction: row; align-items: flex-end; gap: 28px; margin-top: 20px; }
+  .nx-video .nx-description { font-size: .78rem; max-width: 320px; }
+  .nx-video .nx-opening-note { display: none; }
+  .nx-video .nx-desire { padding-top: 115px; }
+  .nx-video .nx-desire h2 { font-size: 14svh; margin-top: 20px; }
+  .nx-video .nx-desire-bottom { margin-top: 16px; }
+  .nx-video .nx-invitation { padding-top: 90px; padding-bottom: 85px; }
+  .nx-video .nx-invitation h2 { font-size: 7.5svh; }
+  .nx-video .nx-invitation .nx-kicker { margin-bottom: 12px; }
+  .nx-video .nx-invitation > p:not(.nx-kicker) { margin-top: 16px; font-size: .85rem; }
+  .nx-video .nx-button-dark { margin-top: 16px; min-height: 44px; font-size: .72rem; }
+  .nx-video .nx-invitation-note { margin-top: 10px; }
+}

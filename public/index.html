@@ -10,14 +10,15 @@
   <link rel="stylesheet" href="./styles.css?v=scroll1" />
   <link rel="stylesheet" href="./motion.css?v=scroll1" />
   <link rel="stylesheet" href="./hero.css?v=vault-10" />
-  <link rel="stylesheet" href="./vault.css?v=vault-16" />
+  <link rel="stylesheet" href="./vault.css?v=video1" />
   <link rel="stylesheet" href="./portfolio.css?v=scroll1" />
   <link rel="preload" as="font" type="font/woff" href="./assets/fonts/inter-regular.woff" crossorigin />
   <script src="./app.js?v=scroll1" defer></script>
-  <script src="./hero.js?v=scroll1" defer></script>
-  <script type="module" src="./vault-loader.js?v=perf2"></script>
+  <script src="./hero.js?v=video2" defer></script>
+  <link rel="stylesheet" href="./hero-video.css?v=2" />
+  <script src="./hero-video.js?v=7" defer></script>
   <script src="./portfolio.js?v=scroll1" defer></script>
-  <script src="./motion.js?v=scroll1" defer></script>
+  <script src="./motion.js?v=video1" defer></script>
   <script src="./analytics.js?v=1" defer></script>
   <link rel="stylesheet" href="./lead-modal.css?v=2" />
   <script src="./lead-modal.js?v=2" defer></script>
@@ -34,24 +35,14 @@
     </nav>
   </header>
   <main id="conteudo">
-    <section class="nexo-hero" id="inicio" aria-labelledby="hero-title">
+    <section class="nexo-hero nx-video" id="inicio" aria-labelledby="hero-title">
       <div class="nx-stage">
         <div class="nx-atmosphere" aria-hidden="true"><div class="nx-glow"></div><div class="nx-grid"></div><div class="nx-orbit nx-orbit-one"></div><div class="nx-orbit nx-orbit-two"></div></div>
         <div class="nx-color-wipe" aria-hidden="true"></div>
         <div class="nx-paper-wipe" aria-hidden="true"></div>
         <div class="nx-cinema-shade" aria-hidden="true"></div>
         <div class="nx-treasure-paper" aria-hidden="true"></div>
-        <div class="nx-vault" aria-hidden="true">
-          <div class="nx-vault-glow"></div>
-          <div class="nx-vault-perspective">
-            <img class="nx-vault-frame" src="./assets/vault/vault-frame.webp" width="1254" height="1254" alt="" loading="eager" fetchpriority="high" />
-            <div class="nx-vault-door">
-              <img class="nx-vault-door-back" src="./assets/vault/vault-door.webp" width="1254" height="1254" alt="" loading="eager" />
-              <img class="nx-vault-door-face" src="./assets/vault/vault-door.webp" width="1254" height="1254" alt="" loading="eager" />
-              <img class="nx-vault-wheel" src="./assets/vault/vault-wheel.webp" width="1254" height="1254" alt="" loading="eager" />
-            </div>
-          </div>
-        </div>
+        <video class="nx-hero-film" muted playsinline preload="none" poster="./assets/hero-video/frame-01.jpg" data-desktop="./assets/hero-video/nexo-hero.mp4?v=4" data-mobile="./assets/hero-video/nexo-hero-mobile.mp4?v=5" aria-hidden="true" tabindex="-1" disablepictureinpicture></video>
 
         <div class="nx-scene nx-opening container" data-hero-scene="0">
           <p class="nx-kicker"><span></span> Nexo / Estúdio de experiências digitais</p>
