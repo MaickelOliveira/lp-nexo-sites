@@ -2,7 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
-import { parseByteRange } from '../server/static-assets.mjs';
+import { parseByteRange, clientIp } from '../server/static-assets.mjs';
+test('the rate-limit address ignores what the visitor claims and keeps what the proxy saw', () => {
+  assert.equal(clientIp('1.1.1.1, 203.0.113.9', '10.0.0.2'), '203.0.113.9');
+  assert.equal(clientIp(['6.6.6.6', '203.0.113.9'], '10.0.0.2'), '203.0.113.9');
+  assert.equal(clientIp(undefined, '10.0.0.2'), '10.0.0.2');
+});
 const source = await readFile('public/hero-video-fallback.js', 'utf8');
 const context = { module: { exports: {} } };
 vm.runInNewContext(source, context);

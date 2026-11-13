@@ -16,6 +16,7 @@
 .lead-privacy{font-size:11px;line-height:1.5;color:#69735f;margin:18px 0 0}
 .lead-status{font-size:12px;color:#943d23;line-height:1.4;margin:10px 0}
 .lead-status:empty{display:none}
+.lead-status a{color:inherit;font-weight:600;text-decoration:underline}
 .lead-submit{box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:20px;width:100%;margin-top:18px;padding:16px 19px;border:0;border-radius:7px;background:#c1f731;color:#172009;font:inherit;font-size:14px;font-weight:600;text-decoration:none;cursor:pointer}
 .lead-submit:disabled{cursor:wait;opacity:.65}
 .lead-submit span{font-size:22px}

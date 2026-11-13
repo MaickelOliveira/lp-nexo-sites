@@ -61,7 +61,8 @@
         this.settleTimer = setTimeout(() => { this.settleTimer = 0; this.pump(); }, 100);
       }
       this.target = target;
-      if (Math.abs(this.position - target) > 32) this.position = target;
+      // Only a real jump (anchor link, scrollbar drag) skips ahead; scrolling glides.
+      if (Math.abs(this.position - target) > 96) this.position = target;
       this.schedule(); this.pump();
     }
     setActive(active) {
@@ -93,7 +94,8 @@
       if (!this.active) return;
       const dt = this.lastTick ? Math.min(50, now - this.lastTick) : 1000 / 60;
       this.lastTick = now;
-      this.position += (this.target - this.position) * (1 - Math.exp(-dt / 45));
+      // Enough inertia to fuse separate mouse-wheel notches into one continuous move.
+      this.position += (this.target - this.position) * (1 - Math.exp(-dt / 150));
       if (Math.abs(this.target - this.position) < .005) this.position = this.target;
       const first = Math.floor(this.position), second = Math.min(first + 1, this.meta.frames - 1);
       let a = this.image(first), b = this.image(second);
@@ -148,20 +150,33 @@
         }
       };
       const current = Math.floor(this.position), target = Math.floor(this.target);
-      for (const frame of [target, target + 1, current, current + 1]) add('preview', frame);
+      const lag = Math.abs(target - current), trailing = lag > 5;
+      // A picture trailing a fast scroll passes its current frame before a decode
+      // of it could finish, so that work goes to the frames ahead instead.
+      for (const frame of trailing ? [target, target + 1] : [target, target + 1, current, current + 1]) add('preview', frame);
+      if (trailing) {
+        // About ten frames spread over the gap: decoding every frame cannot keep
+        // up with a fast scroll. Powers of two keep the grid stable as the gap closes.
+        const way = Math.sign(target - current), step = 2 ** Math.ceil(Math.log2(lag / 10));
+        const first = way > 0 ? Math.ceil((current + 1) / step) * step : Math.floor((current - 1) / step) * step;
+        for (let frame = first; (target - frame) * way > 0; frame += way * step) add('preview', frame);
+      }
       const budget = (this.portrait ? 64 : 160) * 1024 ** 2;
       const preview = this.meta.levels.preview;
       const previewCrop = cropAt(preview.width || 960, preview.height || 540, this.width / this.height, target, this.meta.frames, this.portrait);
       const reserve = previewLimit * Math.min(this.width * this.height, previewCrop.sw * previewCrop.sh) * 4 + 4 * 1024 ** 2;
       const highSlots = Math.max(2, Math.min(6, Math.floor((budget - reserve) / (this.width * this.height * 4))));
       let highCount = 0;
+      const previewComplete = preview.groups.every(group => this.packs.has(group.file));
       const high = frame => {
         frame = Math.max(0, Math.min(last, frame));
         const key = `high:${frame}`;
         const group = this.meta.levels.high?.groups[Math.floor(frame / this.meta.levels.high.groupSize)];
         // Keep network and decode capacity available for motion. Refine after
         // the scroll settles; already cached full-resolution packs remain usable.
-        if (performance.now() - this.lastInputAt < 90 && !this.packs.has(group?.file)) return;
+        // A 4K decode started mid-glide starves the preview frames and reads as a hitch.
+        const moving = performance.now() - this.lastInputAt < 180 || Math.abs(this.target - this.position) > .5;
+        if (moving || !previewComplete) return;
         if (highCount < highSlots && !seen.has(key)) { add('high', frame); highCount++; }
       };
       for (const frame of [target, target + 1, current, current + 1]) high(frame);
@@ -231,7 +246,7 @@
         const pack = await this.pack(group);
         if (epoch !== this.epoch || !this.active) return;
         // A fast jump supersedes old decode work before it allocates a texture.
-        if (Math.abs(item.frame - this.target) > 16 && Math.abs(item.frame - this.position) > 2) return;
+        if (item.frame < Math.min(this.target, this.position) - 16 || item.frame > Math.max(this.target, this.position) + 16) return;
         const local = item.frame - group.start;
         const blob = pack.slice(group.offsets[local], group.offsets[local + 1], 'image/webp');
         const crop = cropAt(level.width, level.height, this.width / this.height, item.frame, this.meta.frames, this.portrait);
@@ -256,7 +271,8 @@
       const candidates = [...this.images.values()].sort((a, b) => distance(b) - distance(a) || (a.level === 'high' ? -1 : 1));
       for (const image of candidates) {
         if (wanted.has(image.key) && distance(image) <= 1) continue;
-        const tooFar = !wanted.has(image.key);
+        // Frames between the picture and its target are about to be shown.
+        const tooFar = !wanted.has(image.key) && (image.frame < Math.min(this.target, this.position) || image.frame > Math.max(this.target, this.position));
         if (!tooFar && this.imageBytes <= budget) continue;
         this.images.delete(image.key); this.imageBytes -= image.bytes; image.bitmap.close();
       }

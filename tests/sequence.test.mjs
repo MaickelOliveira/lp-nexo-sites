@@ -94,7 +94,19 @@ test('uncached high-resolution frames wait for scrolling to settle, while motion
   assert.equal(moving.filter(item => item.level === 'high').length, 0);
   assert.ok(moving.some(item => item.level === 'preview'));
   r.lastInputAt = -Infinity;
+  assert.equal(r.candidates().filter(item => item.level === 'high').length, 0, 'still gliding to the target');
+  r.position = r.target;
+  r.meta.levels.preview.groups = [{file: 'preview-00.bin'}];
+  assert.equal(r.candidates().filter(item => item.level === 'high').length, 0, 'preview track still downloading');
+  r.packs.set('preview-00.bin', {size: 0});
   assert.ok(r.candidates().some(item => item.level === 'high'));
+});
+test('a picture trailing a fast scroll prepares sparse frames across the gap ahead of it', () => {
+  const {renderer: r} = harness();
+  r.portrait = false; r.position = 100; r.target = 170; r.direction = 1;
+  const frames = r.candidates().filter(item => item.level === 'preview').map(item => item.frame);
+  for (const frame of [104, 136, 168]) assert.ok(frames.includes(frame), `frame ${frame}`);
+  assert.ok(!frames.includes(100) && !frames.includes(101), 'the frame being passed is not worth decoding');
 });
 test('mobile lookahead accounts for both preview and full-resolution texture memory', () => {
   const {renderer: r, cropAt} = harness();

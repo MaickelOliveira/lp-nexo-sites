@@ -53,7 +53,7 @@ Verificação: `npm test`. Os testes cobrem preservação da geometria agrupada,
 
 O cabeçalho, a barra de progresso e as seções compartilham um único agendamento por frame. As dimensões ficam em cache e são recalculadas quando o layout muda. Seções fora da tela estabilizam no primeiro/último estado; a faixa verde usa transformação em vez de alterar a altura durante o scroll. O cabeçalho usa fundo sólido para evitar recalcular desfoque sobre o canvas 3D.
 
-A hero atualiza diretamente as camadas visíveis, sem propagar variáveis de animação por toda a árvore. O portfólio mantém camadas gráficas apenas para os projetos em apresentação. `tests/scroll.test.mjs` verifica leituras de layout, agrupamento de eventos, navegação nos quatro projetos, movimento reduzido e retorno das animações ao rolar para cima. A rolagem continua nativa.
+A hero atualiza diretamente as camadas visíveis, sem propagar variáveis de animação por toda a árvore. O portfólio fica em fluxo normal da página (quatro cases com a tela completa de cada site), sem área fixa nem script próprio. `tests/scroll.test.mjs` verifica leituras de layout, agrupamento de eventos, movimento reduzido e retorno das animações ao rolar para cima. A rolagem continua nativa.
 
 ## Filme controlado pela rolagem
 

@@ -15,6 +15,13 @@ export function isNotModified(header,etag) {
   return typeof header==='string'&&header.split(',').some(value=>value.trim()==='*'||value.trim().replace(/^W\//,'')===etag.replace(/^W\//,''));
 }
 
+// The address the rate limit is keyed on. Only the last X-Forwarded-For entry
+// was written by our own proxy; anything before it is whatever the visitor sent.
+// shortcut: assumes one proxy hop (EasyPanel); behind an extra CDN, read that CDN's header instead.
+export function clientIp(forwardedFor, socketAddress='') {
+  return String(forwardedFor ?? '').split(',').pop().trim() || socketAddress;
+}
+
 // Single byte ranges let media decoders seek without downloading the file again.
 export function parseByteRange(header, size) {
   if (!header || !header.startsWith('bytes=') || header.includes(',')) return null;

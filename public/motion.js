@@ -49,8 +49,8 @@
   const steps = all('.method-step');
   const principles = all('.principle');
   const questions = all('.faq-list details');
-  const panels = all('.case-browser').filter(el=>!el.closest('.portfolio-journey'));
-  const reveals = all('.section-index, .heading-aside, .work-heading, .faq-heading, .case-details').filter(el=>!el.closest('.portfolio-journey'));
+  const panels = all('.case-browser');
+  const reveals = all('.section-index, .heading-aside, .work-heading, .faq-heading, .case-details');
   const transitions = all('.scene-transition');
   const intentLines = all('.intent-line');
   const intentSticky = $('.intent-sticky');
@@ -81,7 +81,6 @@
   }
   function measure() {
     window.nexoHero?.configure(window.innerHeight);
-    window.nexoPortfolio?.measure(window.innerHeight);
     window.nexoVault3D?.measure();
     metrics = new Map(tracked.map(el => [el, { top: offsetTop(el), height: el.offsetHeight }]));
     intentRows=intentLines.map(el=>({top:el.offsetTop,height:el.offsetHeight}));
@@ -143,7 +142,6 @@
     window.nexoVault3D?.setActive(heroVisible);
     window.nexoHeroVideo?.setActive(heroVisible);
     if(heroVisible)heroController?.paint(hp,window.innerWidth<=700);
-    window.nexoPortfolio?.paint(y);
 
     // Header contrast follows the surface under it, including reverse traversal.
     let currentSection = hero;

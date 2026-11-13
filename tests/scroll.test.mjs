@@ -6,7 +6,6 @@ import {readFile} from 'node:fs/promises';
 const source=await readFile('public/motion.js','utf8');
 const app=await readFile('public/app.js','utf8');
 const heroSource=await readFile('public/hero.js','utf8');
-const portfolioSource=await readFile('public/portfolio.js','utf8');
 
 function fixture() {
   let allowLayout=true,reads=0,writes=0,queries=0,serial=0;
@@ -144,27 +143,3 @@ test('video hero keeps scroll enabled in short windows and ignores hidden scene 
   assert.equal(h.window.nexoHero.enabled,false);
 });
 
-test('all four projects remain reachable and keyboard access follows the active cover in both directions',()=>{
-  const h=fixture(),e=h.element;
-  e('.portfolio-journey',10000,6000);e('.work-panels',0,600);e('.site-header',0,94);
-  ['[data-project-current]','[data-project-count]','[data-project-external]','[data-project-status]'].forEach(s=>e(s));
-  const names=['Telas Jort','Ciola','GameHub','Zelo'];
-  const panels=names.map((name,i)=>{
-    const panel=e('panel'+i,0,900),link=e('link'+i,60,40);link.href='https://example.com/'+i;
-    panel.querySelector=()=>link;panel.querySelectorAll=()=>[link];return panel;
-  });
-  const choices=names.map((name,i)=>{const el=e('choice'+i);el.dataset.projectName=name;return el;});
-  h.groups.set('[data-service-panel]',panels);h.groups.set('[data-service-tab]',choices);
-  h.window.scrollTo=({top})=>{h.window.scrollY=top;};
-  h.run(portfolioSource);const controller=h.window.nexoPortfolio;controller.measure(900);h.lock();
-  for(const i of [0,1,2,3,2,1,0]){
-    controller.goTo(i);controller.paint(h.window.scrollY);
-    assert.equal(h.nodes.get('[data-project-current]').textContent,names[i]);
-    assert.equal(panels.filter(p=>!p.inert).length,1);assert.equal(panels[i].inert,false);
-    assert.equal(panels[i].querySelector().tabIndex,0);
-    panels.forEach((p,j)=>assert.equal(p.style.getPropertyValue('visibility'),j===i?'visible':'hidden'));
-    assert.equal(panels.filter(p=>p.style.getPropertyValue('will-change')!=='auto').length,1);
-  }
-  assert.equal(h.stats().reads,0);
-  h.lock();controller.paint(h.window.scrollY);assert.equal(h.stats().writes,0);
-});

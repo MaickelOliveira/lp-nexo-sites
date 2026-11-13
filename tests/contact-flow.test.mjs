@@ -99,7 +99,8 @@ test('delivery failure preserves input and retry ID without redirecting or claim
   assert.equal(h.redirects.length, 0);
   assert.equal(h.events.length, 0);
   assert.equal(active.form.hidden, false);
-  assert(active.status.textContent.includes('tente novamente'));
+  assert(active.status.innerHTML.includes('tente novamente'));
+  assert(active.status.innerHTML.includes('https://wa.me/5544998168355'), 'a failed delivery still offers a way to talk');
   assert.equal(active.form.elements.nome.value, 'Contato de teste');
   await active.form.handlers.submit(submitEvent());
   assert.equal(h.calls[0].payload.id, h.calls[1].payload.id);
@@ -112,5 +113,5 @@ test('both forms and floating button are included in initial page markup', () =>
   assert.equal((html.match(/name="telefone"/g) || []).length, 2);
   assert.equal((html.match(/name="email" type="email"[^>]*required/g) || []).length, 2);
   assert(!html.includes('https://www.instagram.com/nexopro.tp/'));
-  assert.match(html, /lead-modal.js\?v=2/);
+  assert.match(html, /lead-modal.js\?v=3/);
 });

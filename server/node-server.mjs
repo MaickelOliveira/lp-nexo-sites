@@ -5,7 +5,7 @@ import { dirname, extname, resolve, sep, relative } from 'node:path';
 import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import worker from './index.js';
-import {selectEncoding,isNotModified,parseByteRange} from './static-assets.mjs';
+import {selectEncoding,isNotModified,parseByteRange,clientIp} from './static-assets.mjs';
 const assets=Object.assign(Object.create(null),JSON.parse(await readFile(new URL('./assets.json',import.meta.url),'utf8')));
 
 const clientRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../client');
@@ -50,10 +50,7 @@ function webHeaders(request) {
       if (item != null) headers.append(name, item);
     }
   }
-  if (!headers.has('CF-Connecting-IP')) {
-    const forwarded = firstHeader(request.headers['x-forwarded-for']);
-    headers.set('CF-Connecting-IP', forwarded || request.socket.remoteAddress || '');
-  }
+  headers.set('CF-Connecting-IP', clientIp(request.headers['x-forwarded-for'], request.socket.remoteAddress));
   return headers;
 }
 

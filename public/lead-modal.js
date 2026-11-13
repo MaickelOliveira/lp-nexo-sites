@@ -98,7 +98,8 @@
         document.dispatchEvent(new CustomEvent('nexo:whatsapp-open'));
         location.assign(result.whatsapp_url);
       } catch {
-        status.textContent = 'Não conseguimos enviar agora. Seus dados continuam aqui; tente novamente em instantes.';
+        // The CRM being down must not cost the conversation: offer WhatsApp directly.
+        status.innerHTML = 'Não conseguimos enviar agora. Seus dados continuam aqui; tente novamente ou <a href="https://wa.me/5544998168355?text=Ol%C3%A1%2C%20Nexo!%20Gostaria%20de%20conversar%20sobre%20um%20projeto." target="_blank" rel="noopener noreferrer">fale direto pelo WhatsApp ↗</a>.';
       } finally {
         clearTimeout(timeout);
         saving = false;

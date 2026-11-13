@@ -1,5 +1,5 @@
 /* Photographic layers articulate in 3D; scroll controls every mechanical phase. */
-.nx-enabled.nexo-hero { height: 1100svh; }
+.nx-enabled.nexo-hero { height: 650svh; }
 .nx-vault { position: absolute; z-index: 1; width: min(49vw,680px,78svh); aspect-ratio: 1; left: 76%; top: 53%; transform: translate(-50%,-50%); pointer-events: none; perspective: 1800px; }
 .nx-vault:not(.is-ready) { visibility: hidden !important; }
 .nx-vault-canvas { position: absolute; inset: 0; z-index: 1; display: block; width: 100%; height: 100%; pointer-events: none; opacity: 0; }
@@ -63,7 +63,7 @@
   .nx-opening-note { font-size: .75rem; bottom: 15%; }
 }
 @media (max-width:700px) {
-  .nx-enabled.nexo-hero { height: 1050svh; }
+  .nx-enabled.nexo-hero { height: 600svh; }
   .nx-vault { width: min(64vw,27svh,300px); left: 50%; top: 54%; }
   .nx-connection { padding-top: 143px; }
   .nx-connection h2 { font-size: 10vw; }
