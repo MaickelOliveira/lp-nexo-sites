@@ -147,6 +147,7 @@
     let currentSection = hero;
     for (const section of sections) if (top(section) <= 85) currentSection = section;
     header?.classList.toggle('is-light',currentSection?.dataset.tone === 'light');
+    header?.classList.toggle('on-hero',currentSection === hero);
     header?.classList.toggle('is-scrolled',y>24);
     transform(reading,`scaleX(${clamp(y/pageRange)})`);
     reveals.forEach(el => {

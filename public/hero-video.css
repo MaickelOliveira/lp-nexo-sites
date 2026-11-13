@@ -12,8 +12,10 @@
 .nx-video.nx-video-error .nx-hero-film { background-image: url('./assets/hero-video/frame-01.jpg'); }
 @media(max-width:700px) {
   .nx-video .nx-hero-film { object-position: 67% center; }
-  .nx-video .nx-opening { background: linear-gradient(#070b0bd9,transparent 52%,#070b0bd9 87%); }
-  .nx-video .nx-invitation { background: linear-gradient(#f0f1ebe6 0%,#f0f1ebbd 58%,transparent 88%); }
+  /* The text scenes are narrower than the screen: paint their scrims edge to edge, never as a column with bands beside it. */
+  .nx-video .nx-opening::before, .nx-video .nx-invitation::before { content: ''; position: absolute; inset: 0 calc(50% - 50vw); z-index: -1; pointer-events: none; }
+  .nx-video .nx-opening::before { background: linear-gradient(#070b0bd9,transparent 52%,#070b0bd9 87%); }
+  .nx-video .nx-invitation::before { background: linear-gradient(#f0f1ebe6 0%,#f0f1ebbd 58%,transparent 88%); }
   .nx-video .nx-cinema-shade { background: linear-gradient(#020604a8,transparent 40%,#02060490); }
 }
 @media(prefers-reduced-motion:reduce) { .nx-video .nx-hero-film { object-position: 67% center; } }
@@ -33,3 +35,7 @@
   .nx-video .nx-button-dark { margin-top: 16px; min-height: 44px; font-size: .72rem; }
   .nx-video .nx-invitation-note { margin-top: 10px; }
 }
+/* Over the opening the film runs edge to edge: no solid bar, only a soft fade for legibility. */
+.site-header.on-hero, .site-header.on-hero.is-scrolled { background: linear-gradient(#0e0e0ed9, #0e0e0e00); box-shadow: none; }
+.site-header.on-hero.is-light { background: linear-gradient(#f0f1e9e6, #f0f1e900); }
+.site-header.on-hero .nav-shell { border-color: transparent; }
