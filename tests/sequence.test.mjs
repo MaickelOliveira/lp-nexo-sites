@@ -96,9 +96,9 @@ test('uncached high-resolution frames wait for scrolling to settle, while motion
   r.lastInputAt = -Infinity;
   assert.equal(r.candidates().filter(item => item.level === 'high').length, 0, 'still gliding to the target');
   r.position = r.target;
-  r.meta.levels.preview.groups = [{file: 'preview-00.bin'}];
-  assert.equal(r.candidates().filter(item => item.level === 'high').length, 0, 'preview track still downloading');
-  r.packs.set('preview-00.bin', {size: 0});
+  Object.assign(r.meta.levels.preview, {groupSize: 48, groups: [{file: 'preview-00.bin'}, {file: 'preview-01.bin'}, {file: 'preview-02.bin'}, {file: 'preview-07.bin'}]});
+  assert.equal(r.candidates().filter(item => item.level === 'high').length, 0, 'light frames around here still downloading');
+  for (const file of ['preview-00.bin', 'preview-01.bin', 'preview-02.bin']) r.packs.set(file, {size: 0});
   assert.ok(r.candidates().some(item => item.level === 'high'));
 });
 test('a picture trailing a fast scroll prepares sparse frames across the gap ahead of it', () => {
@@ -107,6 +107,10 @@ test('a picture trailing a fast scroll prepares sparse frames across the gap ahe
   const frames = r.candidates().filter(item => item.level === 'preview').map(item => item.frame);
   for (const frame of [104, 136, 168]) assert.ok(frames.includes(frame), `frame ${frame}`);
   assert.ok(!frames.includes(100) && !frames.includes(101), 'the frame being passed is not worth decoding');
+});
+test('decode concurrency follows the device cores, between 2 and 4', () => {
+  const {renderer: r} = harness();
+  assert.ok(r.maxJobs >= 2 && r.maxJobs <= 4);
 });
 test('mobile lookahead accounts for both preview and full-resolution texture memory', () => {
   const {renderer: r, cropAt} = harness();
@@ -118,7 +122,7 @@ test('mobile lookahead accounts for both preview and full-resolution texture mem
   assert.ok(bytes <= 64 * 1024 ** 2, 'the requested working set must fit, without eviction/decode churn');
 });
 test('both sequences contain 384 complete frames and the mobile crop retains 2160 pixels in height', async () => {
-  for (const [directory, width] of [['v1', 3840], ['mobile-v1', 1440]]) {
+  for (const [directory, width] of [['v1', 3840], ['mobile-v2', 1440]]) {
     const root = `public/assets/hero-sequence/${directory}`;
     const manifest = JSON.parse(await readFile(`${root}/manifest.json`, 'utf8'));
     assert.equal(manifest.width, width); assert.equal(manifest.height, 2160);

@@ -66,3 +66,7 @@ Os quadros são agrupados em pacotes com um manifesto de offsets. Uma sequência
 O cache de imagens decodificadas é limitado a 64 MiB em retrato e 160 MiB em paisagem; o cache comprimido usa até 40 MiB. Esses limites pertencem ao renderizador, não à memória total do navegador. Texturas antigas são liberadas explicitamente. Fora da hero, em abas ocultas e com movimento reduzido, o processamento para. Economia de dados preserva a imagem inicial. Se canvas/worker não funcionar, `hero-video-fallback.js` mantém o MP4 anterior e o suporte HTTP Range do servidor.
 
 `tests/sequence.test.mjs` cobre ida e volta, interpolação, cortes, memória, rotação e integridade dos 384 quadros nas duas resoluções. `npm test` também cobre o fallback e os fluxos de contato/rastreamento. A comparação controlada em navegador foi realizada com ida e volta durante dez segundos, incluindo canvas 3840×2160 e 1080×2160. Medições em um navegador de teste não garantem o mesmo resultado em todo celular ou conexão.
+
+### Quadros do celular
+
+`assets/hero-sequence/mobile-v2/` guarda só o manifesto e os quadros leves (540×810) usados durante a rolagem; os quadros em 4K do celular continuam em `mobile-v1/` e o manifesto os aponta com caminho relativo. Decodificar os quadros leves custa metade do tempo dos antigos (720×1080), e o 4K só começa depois que os pacotes leves ao redor da posição atual chegaram. Para regerar, redimensione os quadros de `mobile-v1/high-*.bin` para 540×810 (WebP, qualidade 62), agrupe 48 por pacote e atualize `levels.preview` do manifesto.

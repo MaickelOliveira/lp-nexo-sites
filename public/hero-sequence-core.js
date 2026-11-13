@@ -12,6 +12,8 @@
     constructor(canvas, manifestUrl, notify = () => {}, onDraw = null) {
       this.canvas = canvas;
       this.ctx = canvas.getContext('2d', {alpha: false, desynchronized: true});
+      // Decoding is what limits a fast scroll: use half the cores, at least 2 and at most 4.
+      this.maxJobs = Math.max(2, Math.min(4, (typeof navigator === 'undefined' ? 4 : navigator.hardwareConcurrency || 4) >> 1));
       this.manifestUrl = manifestUrl;
       this.notify = notify;
       this.onDraw = onDraw;
@@ -167,7 +169,9 @@
       const reserve = previewLimit * Math.min(this.width * this.height, previewCrop.sw * previewCrop.sh) * 4 + 4 * 1024 ** 2;
       const highSlots = Math.max(2, Math.min(6, Math.floor((budget - reserve) / (this.width * this.height * 4))));
       let highCount = 0;
-      const previewComplete = preview.groups.every(group => this.packs.has(group.file));
+      // Refine only once the light frames around the current position are in hand, not the whole track.
+      const here = Math.floor(target / preview.groupSize);
+      const previewComplete = [here - 1, here, here + 1].every(i => !preview.groups[i] || this.packs.has(preview.groups[i].file));
       const high = frame => {
         frame = Math.max(0, Math.min(last, frame));
         const key = `high:${frame}`;
@@ -191,7 +195,7 @@
       if (!this.active || !this.meta || !this.width) return;
       const now = Date.now();
       const next = this.candidates().filter(item => !this.images.has(item.key) && !this.decoding.has(item.key) && !(this.failures.get(item.key) > now));
-      while (this.jobs < 2 && next.length) this.decode(next.shift());
+      while (this.jobs < this.maxJobs && next.length) this.decode(next.shift());
       // Cache the small preview track for immediate jumps and direction changes.
       // Full-resolution packs are requested only around the current position.
       if (this.fetches.size < 3) {
@@ -252,7 +256,10 @@
         const crop = cropAt(level.width, level.height, this.width / this.height, item.frame, this.meta.frames, this.portrait);
         const scale = Math.min(1, this.width / crop.sw, this.height / crop.sh);
         const width = Math.max(1, Math.round(crop.sw * scale)), height = Math.max(1, Math.round(crop.sh * scale));
-        const bitmap = await createImageBitmap(blob, crop.sx, crop.sy, crop.sw, crop.sh, {resizeWidth: width, resizeHeight: height, resizeQuality: 'high'});
+        // Asking for a resize to the same size still costs about a third of the decode time.
+        const bitmap = scale < 1
+          ? await createImageBitmap(blob, crop.sx, crop.sy, crop.sw, crop.sh, {resizeWidth: width, resizeHeight: height, resizeQuality: 'high'})
+          : await createImageBitmap(blob, crop.sx, crop.sy, crop.sw, crop.sh);
         if (epoch !== this.epoch || !this.active) { bitmap.close(); return; }
         const image = {...item, bitmap, bytes: width * height * 4};
         this.images.set(item.key, image); this.imageBytes += image.bytes;

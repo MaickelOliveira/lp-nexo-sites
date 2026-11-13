@@ -1,4 +1,4 @@
-importScripts('./hero-sequence-core.js?v=4');
+importScripts('./hero-sequence-core.js?v=5');
 if (typeof self.requestAnimationFrame !== 'function') {
   self.requestAnimationFrame = callback => setTimeout(() => callback(performance.now()), 1000 / 60);
   self.cancelAnimationFrame = id => clearTimeout(id);

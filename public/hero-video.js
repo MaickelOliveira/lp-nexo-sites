@@ -68,7 +68,7 @@
     const url = new URL(size.portrait ? video.dataset.sequenceMobile : video.dataset.sequence, location.href).href;
     try {
       if (canvas.transferControlToOffscreen && typeof Worker === 'function') {
-        worker = new Worker('./hero-sequence-worker.js?v=4');
+        worker = new Worker('./hero-sequence-worker.js?v=5');
         worker.onmessage = ({data}) => status(data);
         worker.onerror = () => useVideo();
         const surface = canvas.transferControlToOffscreen();
