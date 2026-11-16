@@ -62,7 +62,7 @@ test('website assets pass through and lead journey stays inactive until destinat
 function lead() {
   return { id: webcrypto.randomUUID(), nome: 'Pessoa de Teste', telefone: '(44) 99999-1234', email: 'contato@example.com', empresa: 'Empresa de teste', tipo_projeto: 'Landing page', investimento: 'Ainda preciso definir', prazo: 'Nos próximos 30 dias', event_source_url: origin + '/', utm: { utm_source: 'test', unexpected: 'ignored' } };
 }
-const leadEnv = { ...env, WHATSAPP_NUMBER: '5544999990000', CRM_WEBHOOK_URL: 'https://crm.example.test/webhook', CRM_WEBHOOK_TOKEN: 'crm-test-secret' };
+const leadEnv = { ...env, WHATSAPP_NUMBER: '5544999990000', CRM_WEBHOOK_URL: 'https://crm.example.test/webhook', CRM_WEBHOOK_TOKEN: 'crm-test-secret', CRM_FUNNEL_ID: '11111111-1111-4111-8111-111111111111' };
 
 test('qualified lead reaches CRM before Lead conversion and WhatsApp continuation', async t => {
   const calls = [];
@@ -82,10 +82,13 @@ test('qualified lead reaches CRM before Lead conversion and WhatsApp continuatio
   }
   assert.equal(calls[0].url, leadEnv.CRM_WEBHOOK_URL);
   assert.equal(calls[0].init.headers['Idempotency-Key'], input.id);
-  assert.equal(calls[0].body.telefone, '5544999991234');
+  assert.equal(calls[0].body.phone, '5544999991234');
+  assert.equal(calls[0].body.name, input.nome);
+  assert.equal(calls[0].body.funnelId, leadEnv.CRM_FUNNEL_ID);
   assert.equal(calls[0].body.email, 'contato@example.com');
   assert.equal(calls[0].body.investimento, input.investimento);
-  assert(!('unexpected' in calls[0].body.utm));
+  assert.equal(calls[0].body.utm_source, 'test');
+  assert(!('utm' in calls[0].body));
   assert.equal(calls[1].body.data[0].event_name, 'Lead');
   assert.equal(calls[1].body.data[0].event_id, input.id);
   assert(!JSON.stringify(calls[1].body).includes(input.nome), 'lead PII only goes to the CRM');
@@ -100,6 +103,13 @@ test('missing or invalid email never reaches the CRM', async t => {
     const result = await worker.fetch(request('/api/leads', { ...lead(), email }), leadEnv);
     assert.equal(result.status, 400);
   }
+  assert.equal(spy.mock.callCount(), 0);
+});
+
+test('missing destination funnel does not accept leads', async t => {
+  const spy = t.mock.method(globalThis, 'fetch', async () => { throw Error('must not be called'); });
+  const result = await worker.fetch(request('/api/leads', lead()), { ...leadEnv, CRM_FUNNEL_ID: '' });
+  assert.equal(result.status, 503);
   assert.equal(spy.mock.callCount(), 0);
 });
 
@@ -143,3 +153,4 @@ test('browser opt-out installs neither Pixel nor server tracking', async () => {
   vm.runInNewContext(source, { window, navigator: { globalPrivacyControl: true } });
   assert.equal(window.fbq, undefined);
 });
+

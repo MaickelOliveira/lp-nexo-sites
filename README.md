@@ -37,7 +37,7 @@ Esta versão usa backend compatível com Cloudflare Workers e foi publicada pelo
 
 Uma hospedagem apenas estática não executa `/api/leads` nem `/api/meta/events`. Para o EasyPanel, use a imagem Docker incluída no projeto.
 
-Configure no servidor as variáveis de `.env.example`: `META_PIXEL_ID`, `META_GRAPH_VERSION`, `META_ACCESS_TOKEN`, `WHATSAPP_NUMBER`, `CRM_WEBHOOK_URL` e, se exigido pelo CRM, `CRM_WEBHOOK_TOKEN`. Use o número de WhatsApp da Nexo: `5544998168355`.
+Configure no servidor as variáveis de `.env.example`: `META_PIXEL_ID`, `META_GRAPH_VERSION`, `META_ACCESS_TOKEN`, `WHATSAPP_NUMBER`, `CRM_WEBHOOK_URL`, `CRM_FUNNEL_ID` e, se exigido pelo CRM, `CRM_WEBHOOK_TOKEN`. Use o número comercial configurado para a Nexo em `WHATSAPP_NUMBER`. O `CRM_WEBHOOK_URL` deve apontar para `/api/crm/webhook/form?clientId=...` da Nexo; `CRM_FUNNEL_ID` deve ser o funil desse mesmo cliente. Sem os dois, o formulário permanece indisponível.
 
 Nunca publique tokens ou a URL privada do webhook no GitHub nem no JavaScript do navegador. As respostas do formulário seguem para o CRM; o redirecionamento ao WhatsApp usa uma mensagem genérica, sem as respostas.
 
@@ -70,3 +70,4 @@ O cache de imagens decodificadas é limitado a 64 MiB em retrato e 160 MiB em pa
 ### Quadros do celular
 
 `assets/hero-sequence/mobile-v2/` guarda só o manifesto e os quadros leves (540×810) usados durante a rolagem; os quadros em 4K do celular continuam em `mobile-v1/` e o manifesto os aponta com caminho relativo. Decodificar os quadros leves custa metade do tempo dos antigos (720×1080), e o 4K só começa depois que os pacotes leves ao redor da posição atual chegaram. Para regerar, redimensione os quadros de `mobile-v1/high-*.bin` para 540×810 (WebP, qualidade 62), agrupe 48 por pacote e atualize `levels.preview` do manifesto.
+

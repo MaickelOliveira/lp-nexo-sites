@@ -120,7 +120,9 @@ const acceptedSubmissions = new Map();
 export function leadReady(env) {
   try {
     const url = new URL(env.CRM_WEBHOOK_URL);
-    return /^\d{10,15}$/.test(env.WHATSAPP_NUMBER || '') && url.protocol === 'https:' && !url.username && !url.password;
+    return /^\d{10,15}$/.test(env.WHATSAPP_NUMBER || '') &&
+      /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(env.CRM_FUNNEL_ID || '') &&
+      url.protocol === 'https:' && !url.username && !url.password;
   } catch { return false; }
 }
 
@@ -152,13 +154,13 @@ export async function saveLead(request, env, ctx) {
     if (typeof input.utm?.[key] === 'string') utm[key] = input.utm[key].slice(0, 200);
   }
   const lead = {
-    id: input.id, evento: 'lead.qualificado', nome: name,
-    telefone: phone.length <= 11 ? '55' + phone : phone,
+    name, phone: phone.length <= 11 ? '55' + phone : phone,
     email,
+    funnelId: env.CRM_FUNNEL_ID,
     empresa: input.empresa?.trim() || '', tipo_projeto: input.tipo_projeto,
     investimento: input.investimento, prazo: input.prazo,
     origem: 'Landing page Nexo', pagina: source.origin + source.pathname,
-    criado_em: new Date(now).toISOString(), contato_solicitado: true, utm
+    criado_em: new Date(now).toISOString(), ...utm
   };
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 8000);
@@ -202,3 +204,4 @@ export default {
     return new Response('Not found', { status: 404 });
   }
 };
+
